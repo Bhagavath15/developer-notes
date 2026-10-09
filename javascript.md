@@ -2,21 +2,90 @@
 
 ## Scope
 
-Scope determines the accessibility and visibility of variables within different parts of your code. JavaScript has global scope, function scope, and block scope.
+Scope determines the accessibility and visibility of variables within different parts of your code. JavaScript has global scope, function scope, block scope, and lexical scope.
+
+### Global Scope
+
+Variables or functions declared outside any function or block are in the global scope and are accessible throughout your code.
 
 ```javascript
-function add() {
-    if (true) {
-        var a = 1;   // Function-scoped
-        let b = 2;   // Block-scoped
-        const c = 3; // Block-scoped
-    }
-    // 'a' is accessible here due to function scope.
-    // 'b' and 'c' would throw a ReferenceError if accessed here.
-    return a + 2; 
+const appName = "CraveGo";
+
+function showAppName() {
+    console.log(appName); // Output: "CraveGo"
 }
 
-console.log(add()); // Output: 3
+showAppName();
+console.log(appName); // Output: "CraveGo"
+```
+
+### Function Scope
+
+Variables declared inside a function are local to that function body and cannot be accessed externally.
+
+```javascript
+function calculateTotal() {
+    const price = 200;
+    const quantity = 3;
+    console.log(price * quantity); // Output: 600
+}
+
+calculateTotal();
+// console.log(price); // Throws ReferenceError: price is not defined
+```
+
+### Block Scope
+
+A block is code enclosed in curly braces `{ }`, such as inside an `if` statement or a loop. Variables declared with `let` and `const` are block-scoped, whereas `var` is function-scoped or globally scoped.
+
+```javascript
+if (true) {
+    var a = 10;   // Function-scoped / Global
+    let b = 20;   // Block-scoped
+    const c = 30; // Block-scoped
+}
+
+console.log(a); // Output: 10
+// console.log(b); // ReferenceError: b is not defined
+// console.log(c); // ReferenceError: c is not defined
+```
+
+### Lexical Scope
+
+Lexical scope means that where a function is physically written in the source code determines which surrounding variables that function can access. Inner functions have access to variables in their parent lexical environments.
+
+```javascript
+const name = "Peter";
+
+function outer() {
+    const place = "Chennai";
+
+    function inner() {
+        const age = 25;
+        console.log(name);  // Output: "Peter"
+        console.log(place); // Output: "Chennai"
+        console.log(age);   // Output: 25
+    }
+
+    inner();
+}
+
+outer();
+```
+
+---
+
+## Temporal Dead Zone (TDZ)
+
+The Temporal Dead Zone (TDZ) is the period between entering a scope and the point where a variable declared with `let` or `const` is initialized. Accessing a variable during TDZ throws a `ReferenceError`.
+
+```javascript
+// console.log(price); // ReferenceError: Cannot access 'price' before initialization
+
+let price = 200;
+
+console.log(c); // Output: undefined (var is hoisted and initialized to undefined)
+var c = 30;
 ```
 
 ---
@@ -28,6 +97,16 @@ Hoisting is JavaScript's default behavior of moving variable and function declar
 ```javascript
 console.log(hoisting); // Output: undefined
 var hoisting = 'hello';
+```
+
+Function declarations are fully hoisted with their definitions available:
+
+```javascript
+greet(); // Output: "Hello"
+
+function greet() {
+    console.log("Hello");
+}
 ```
 
 ---
@@ -158,6 +237,17 @@ const date = new Date();
 - **Primitives:** Assigned and copied by value.
 - **Reference Types:** Assigned and copied by reference pointer.
 
+### Reference Equality
+
+```javascript
+const a = { name: "John" };
+const b = { name: "John" };
+const c = a;
+
+console.log(a === b); // Output: false (two distinct memory references)
+console.log(a === c); // Output: true  (points to the exact same reference)
+```
+
 ---
 
 ## Equality Comparison: `==` vs `===`
@@ -211,7 +301,7 @@ const copy = user;
 
 ### Shallow Copy
 
-A shallow copy duplicates top-level properties. However, nested object properties remain shared references.
+A shallow copy duplicates top-level properties. However, nested object properties remain shared references. Shallow copies can be created using `{ ...obj }`, `Object.assign()`, `[...arr]`, or `slice()`.
 
 ```javascript
 const user = {
@@ -243,7 +333,7 @@ copy.address.city = "Bangalore";
 console.log(user.address.city); // Output: "Bangalore"
 ```
 
-- Spread operator (`...`) creates a shallow duplicate. Nested levels remain linked by reference.
+- Spread operator (`...`) creates a shallow duplicate. Top-level primitive properties are separated, but nested levels remain linked by reference.
 
 ### Deep Copy
 
@@ -862,31 +952,7 @@ function greet(name = "Guest") {
 console.log(greet("John"));    // Output: "Hello John"
 console.log(greet());          // Output: "Hello Guest"
 console.log(greet(undefined)); // Output: "Hello Guest"
-console.log(greet(null));      // Output: "Hello null" (null is treated as a explicit value)
-```
-
-- Function declarations are fully hoisted, allowing them to be called before their definition appears in the code structure.
-
-```javascript
-greet(); // Output: "Hello"
-
-function greet() {
-    console.log("Hello");
-}
-```
-
-### Function Scope
-
-Variables declared inside a function are local to that function body and cannot be accessed externally.
-
-```javascript
-function test() {
-    const message = "Hello";
-    console.log(message);
-}
-
-test();
-// console.log(message); // Throws ReferenceError: message is not defined
+console.log(greet(null));      // Output: "Hello null" (null is treated as an explicit value)
 ```
 
 ### Outer Scope Access
@@ -1019,7 +1085,7 @@ user.greet(); // Output: undefined
 
 - Arrow functions do not bind their own `this` to `user`; they look up `this` in the outer lexical scope (e.g., global object or module context), where `name` is undefined.
 
-``` javascript
+```javascript
 const user = {
   name: "John",
 
@@ -1030,7 +1096,7 @@ const user = {
   }
 };
 
-user.greet()
+user.greet(); // Output after 1 second: "John"
 ```
 
 ``` javascript
@@ -1096,6 +1162,7 @@ processUser("David", greet); // Output: "Hello David"
 ## Higher-Order Functions
 
 A Higher-Order Function (HOF) is a function that does at least one of the following:
+
 1. Accepts one or more functions as arguments (e.g., accepting callbacks).
 2. Returns a function as its result.
 
@@ -1139,6 +1206,7 @@ A function that accepts another function as an argument, or returns a function
 ### Pure Functions
 
 A pure function is a function that satisfies two conditions:
+
 1. **Deterministic:** Always returns the same output for the identical set of inputs.
 2. **No Side Effects:** Does not read or modify any state or variables outside its scope (no external mutations, no I/O side effects).
 
@@ -1366,6 +1434,27 @@ console.log(user); // Output: { name: 'John', age: 25, greet: [Function: greet],
 
 ## Array Iteration Methods
 
+### `Array.prototype.forEach()`
+
+`forEach()` executes a provided callback function once for each element in an array.
+
+- **Purpose:** Used for side effects (e.g., printing items, updating external state).
+- **Return Value:** Returns `undefined`.
+- **Note:** It ignores any return values inside its callback and does not return a new array.
+
+```javascript
+const numbers = [10, 20, 30, 40];
+
+numbers.forEach((num) => {
+    console.log(num);
+});
+
+const result = numbers.forEach((num) => num * 2);
+console.log(result); // Output: undefined
+```
+
+---
+
 ### `Array.prototype.map()`
 
 `map()` creates a new array populated with the results of calling a provided callback function on every element in the calling array.
@@ -1381,37 +1470,10 @@ const updated = numbers.map((num) => num * 2);
 console.log(updated); // Output: [2, 4, 6, 8, 10]
 ```
 
-#### Callback Parameters
-
-```javascript
-array.map((element, index, array) => {
-    // element: The current value being processed
-    // index: The index of the current element
-    // array: The original array map was called upon
-});
-```
-
 #### `map()` vs `forEach()`
 
 - `map()` returns a newly created array containing transformed elements.
 - `forEach()` executes a callback for each element without returning anything (`undefined`), ignoring any values returned by the callback.
-
-```javascript
-const numbers = [1, 2, 3, 4, 5];
-
-// forEach executes side effects
-numbers.forEach((num) => {
-    console.log(num);
-});
-
-// forEach ignores callback return values
-const result = numbers.forEach((num) => {
-    return num * 3;
-});
-
-console.log(result);  // Output: undefined
-console.log(numbers); // Output: [1, 2, 3, 4, 5] (original unchanged)
-```
 
 ---
 
@@ -1433,29 +1495,6 @@ const evenNumbers = numbers.filter((num) => {
 console.log(evenNumbers); // Output: [2, 4]
 ```
 
-#### Callback Parameters
-
-```javascript
-array.filter((element, index, array) => {
-    // element: The current value being processed
-    // index: The index of the current element
-    // array: The original array
-    return condition; // Must return a truthy or falsy value
-});
-```
-
-#### Conceptual Comparison: `map()` vs `filter()`
-
-```text
-map()
- ↓
-"Transform every item"
-
-filter()
- ↓
-"Should I keep this item?"
-```
-
 ---
 
 ### `Array.prototype.reduce()`
@@ -1475,17 +1514,6 @@ const total = numbers.reduce((accumulator, currentValue) => {
 console.log(total); // Output: 15
 ```
 
-#### Callback Parameters
-
-```javascript
-array.reduce((accumulator, currentValue, index, array) => {
-    // accumulator: Value accumulated from previous iterations (or initialValue)
-    // currentValue: The current element being processed
-    // index: Current index
-    // array: The original array
-}, initialValue);
-```
-
 ---
 
 ### `Array.prototype.find()`
@@ -1501,11 +1529,6 @@ const numbers = [1, 2, 3, 4, 5];
 const result = numbers.find((num) => num > 3);
 
 console.log(result); // Output: 4
-```
-
-```text
-Match found → Returns the matching element
-No match    → Returns undefined
 ```
 
 ---
@@ -1525,14 +1548,6 @@ const result = numbers.some((num) => num % 2 === 0);
 console.log(result); // Output: true
 ```
 
-#### Comparison: `find()` vs `filter()` vs `some()`
-
-```text
-find()   → "Which one is the first match?"
-filter() → "Give me ALL matching elements"
-some()   → "Is there AT LEAST ONE matching element?"
-```
-
 ---
 
 ### `Array.prototype.every()`
@@ -1550,13 +1565,6 @@ const result = numbers.every((num) => num % 2 === 0);
 console.log(result); // Output: true
 ```
 
-#### `some()` vs `every()`
-
-```text
-some()  → Is AT LEAST ONE element true?
-every() → Are ALL elements true?
-```
-
 #### Empty Array Behavior with `some()` and `every()`
 
 ```javascript
@@ -1564,31 +1572,46 @@ every() → Are ALL elements true?
 [].every((num) => num > 0); // Output: true
 ```
 
-- `some()` asks: *"Is there at least one element satisfying the condition?"* An empty array has no elements, so it evaluates to `false`.
-- `every()` asks: *"Did any element fail the condition?"* In an empty array, no elements failed (vacuous truth), so it evaluates to `true`.
+---
+
+### `Array.prototype.flat()`
+
+`flat()` creates a new array with all sub-array elements concatenated into it recursively up to the specified depth.
+
+- **Non-mutating:** Does not alter the original array; returns a new flattened array.
+- **Default depth:** 1 level.
+
+```javascript
+const numbers = [1, 2, [3, 4], 5];
+console.log(numbers.flat()); // Output: [1, 2, 3, 4, 5]
+
+const nested = [1, 2, [3, 4, [5, 6]]];
+console.log(nested.flat(2));        // Output: [1, 2, 3, 4, 5, 6]
+console.log(nested.flat(Infinity)); // Output: [1, 2, 3, 4, 5, 6] (Flattens all nested levels)
+```
+
+---
+
+### `Array.prototype.flatMap()`
+
+`flatMap()` combines `map()` and `flat()` (depth 1) into a single method call. It maps each element using a mapping function, then flattens the result into a new array.
+
+- **Higher-Order Function:** Accepts a callback function.
+- **Flattens 1 level only:** Cannot flatten deeper than 1 level.
+
+```javascript
+const numbers = [1, 2, 3];
+
+const result = numbers.flatMap((num) => [num, num * 2]);
+
+console.log(result); // Output: [1, 2, 2, 4, 3, 6]
+```
 
 ---
 
 ### `Array.prototype.sort()`
 
 `sort()` sorts the elements of an array in place and returns the reference to the same array (it mutates the original array).
-
-- By default, elements are converted to strings and compared using their UTF-16 code units (lexicographical sorting).
-
-```javascript
-const fruits = ["banana", "apple", "orange"];
-
-fruits.sort();
-console.log(fruits); // Output: ["apple", "banana", "orange"]
-
-// Descending alphabetical sort using localeCompare
-fruits.sort((a, b) => b.localeCompare(a));
-console.log(fruits); // Output: ["orange", "banana", "apple"]
-```
-
-#### Sorting Numbers Using a Comparator Function
-
-Default string-based sorting leads to unexpected results for numbers (e.g., `100` is placed before `25` because `"1"` comes before `"2"`). To sort numbers numerically, provide a comparator callback `(a, b) => a - b`:
 
 ```javascript
 const numbers = [3, 6, 7, 567, 32, 654, 90, 1, 354, 54];
@@ -1602,37 +1625,163 @@ numbers.sort((a, b) => b - a);
 console.log(numbers); // Output: [654, 567, 354, 90, 54, 32, 7, 6, 3, 1]
 ```
 
-#### Why `(a, b) => a - b` Works
+---
 
-```text
-Negative value (< 0) → 'a' is placed before 'b'
-Positive value (> 0) → 'b' is placed before 'a'
-Zero (=== 0)         → Keep original relative order
+### Array Methods Comparison Cheatsheet
+
+| Method | Purpose | Return Value | Mutates Original? |
+| :--- | :--- | :--- | :--- |
+| `forEach()` | Executes side effects per item | `undefined` | No |
+| `map()` | Transforms every item | New array | No |
+| `filter()` | Selects matching items | New array | No |
+| `reduce()` | Aggregates items into single output | Any value | No |
+| `find()` | Finds first matching item | Element / `undefined` | No |
+| `some()` | Checks if at least one item matches | `true` or `false` | No |
+| `every()` | Checks if all items match | `true` or `false` | No |
+| `flat()` | Flattens nested arrays | New array | No |
+| `flatMap()` | Transforms then flattens 1 level | New array | No |
+| `sort()` | Reorders array elements in place | Array reference | **Yes** |
+
+---
+
+## Execution Context
+
+An Execution Context is an environment created by JavaScript to transform and execute code. It keeps track of variables, functions, outer scope references, and `this` binding.
+
+### Types of Execution Contexts
+
+1. **Global Execution Context (GEC):** Created by default for executing top-level script code.
+2. **Function Execution Context (FEC):** Created every time a function is invoked.
+
+### Phases of Execution Context
+
+Each context passes through two phases:
+
+1. **Creation Phase:** Memory space is set up for variables and functions (hoisting occurs; `var` variables are set to `undefined`).
+2. **Execution Phase:** Code is executed line by line, assigning values and invoking functions.
+
+---
+
+## Call Stack and Stack Overflow
+
+### Call Stack
+
+The Call Stack is a LIFO (Last-In, First-Out) data structure used by JavaScript to track the execution contexts created by function calls.
+
+```javascript
+function first() {
+    console.log("First start");
+    second();
+    console.log("First end");
+}
+
+function second() {
+    console.log("Second");
+}
+
+first();
+
+// Output:
+// First start
+// Second
+// First end
+```
+
+### Stack Overflow
+
+Occurs when the call stack exceeds its maximum stack size limit, typically caused by unhandled infinite recursion.
+
+```javascript
+function repeat() {
+    repeat(); // Throws RangeError: Maximum call stack size exceeded
+}
+
+repeat();
 ```
 
 ---
 
-### Array Methods Comparison & Cheatsheet
+## Asynchronous JavaScript
 
-| Method | Purpose | Return Value | Output Length / Shape | Mutates Original? |
-| :--- | :--- | :--- | :--- | :--- |
-| `map()` | Transforms every element into a new array | New array | Same length as original | No |
-| `filter()` | Selects matching elements | New array | 0 to original length | No |
-| `forEach()` | Executes side effects for each element | `undefined` | No array returned | No |
-| `reduce()` | Combines elements into a single accumulated value | Single value | Any data type (number, object, etc.) | No |
-| `find()` | Finds the first matching element | Single element or `undefined` | Single item | No |
-| `some()` | Checks if at least one element satisfies condition | `true` or `false` | Boolean | No |
-| `every()` | Checks if all elements satisfy condition | `true` or `false` | Boolean | No |
-| `sort()` | Sorts elements in place | Reference to original array | Same length | **Yes** |
+### Callback Hell
 
-#### Quick Reference
+Callback Hell occurs when multiple nested asynchronous callbacks make code hard to read, maintain, and debug.
 
-```text
-map()     → CHANGE / TRANSFORM every item into a new array
-filter()  → SELECT all matching items into a new array
-find()    → FIND the first matching item or return undefined
-some()    → CHECK if at least one item satisfies the condition (returns boolean)
-every()   → CHECK if all items satisfy the condition (returns boolean)
-reduce()  → COMBINE / ACCUMULATE items into a single final value
-sort()    → REORDER items in place (mutates original array)
+```javascript
+function stepOne(callback) {
+    setTimeout(() => {
+        console.log("Step 1");
+        callback();
+    }, 1000);
+}
+
+function stepTwo(callback) {
+    setTimeout(() => {
+        console.log("Step 2");
+        callback();
+    }, 1000);
+}
+
+// Nested call structure (Pyramid of Doom)
+stepOne(() => {
+    stepTwo(() => {
+        console.log("All steps finished");
+    });
+});
+```
+
+---
+
+## Promises
+
+A `Promise` is an object representing the eventual completion or failure of an asynchronous operation.
+
+### Promise States
+
+1. **Pending:** Initial state; operation in progress.
+2. **Fulfilled:** Operation completed successfully (`resolve()`).
+3. **Rejected:** Operation failed (`reject()`).
+
+```javascript
+const paymentPromise = new Promise((resolve, reject) => {
+    const paymentSuccess = true;
+    if (paymentSuccess) {
+        resolve("Payment completed");
+    } else {
+        reject("Payment failed");
+    }
+});
+
+paymentPromise
+    .then((data) => {
+        console.log(data); // Output: "Payment completed"
+    })
+    .catch((err) => {
+        console.error(err);
+    })
+    .finally(() => {
+        console.log("Payment process finished."); // Executes regardless of outcome
+    });
+```
+
+### Promise Chaining
+
+Promise chaining allows sequential execution of asynchronous operations while avoiding nested callbacks. Each `.then()` returns a new Promise.
+
+```javascript
+Promise.resolve(10)
+    .then((price) => {
+        console.log(price); // Output: 10
+        return price * 2;
+    })
+    .then((result) => {
+        console.log(result); // Output: 20
+        return result + 5;
+    })
+    .then((finalResult) => {
+        console.log(finalResult); // Output: 25
+    })
+    .catch((error) => {
+        console.error("Error occurred:", error.message);
+    });
 ```
