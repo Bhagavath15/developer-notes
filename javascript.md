@@ -9,14 +9,14 @@ Scope determines the accessibility and visibility of variables within different 
 Variables or functions declared outside any function or block are in the global scope and are accessible throughout your code.
 
 ```javascript
-const appName = "CraveGo";
+const appName = "Amazon";
 
 function showAppName() {
-    console.log(appName); // Output: "CraveGo"
+    console.log(appName); // Output: "Amazon"
 }
 
 showAppName();
-console.log(appName); // Output: "CraveGo"
+console.log(appName); // Output: "Amazon"
 ```
 
 ### Function Scope
