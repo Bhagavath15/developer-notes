@@ -204,7 +204,14 @@ console.log(b); // Output: 20
 
 ## Reference / Object Types
 
-Objects, Arrays, Functions, Dates, Maps, and Sets are reference types. A variable assigned to a reference type holds a memory address (reference) pointing to the object, not the object itself.
+A variable assigned to a reference type holds a memory address (reference) pointing to the object, not the object itself.
+
+1. `Objects`
+2. `Arrays`
+3. `Functions`
+4. `Dates`
+5. `Maps`
+6. `Sets`
 
 ```javascript
 const user1 = {
@@ -221,7 +228,6 @@ console.log(user2.name); // Output: "peter"
 
 - Both variables reference the exact same object in memory.
 - JavaScript passes argument values as values, but for objects, that value is the reference itself.
-- Functions, Arrays, Dates, Maps, and Sets are also objects in JavaScript:
 
 ```javascript
 const greet = function () {
@@ -1784,4 +1790,193 @@ Promise.resolve(10)
     .catch((error) => {
         console.error("Error occurred:", error.message);
     });
+```
+
+---
+
+## Async / Await
+
+`async/await` is modern ES8 syntax built on top of Promises that allows asynchronous code to be written in a cleaner, synchronous style.
+
+- Marking a function with `async` ensures it always returns a Promise.
+- The `await` keyword pauses execution inside an `async` function until the Promise settles (resolves or rejects).
+
+```javascript
+function processPayment() {
+    return Promise.resolve("Payment processed");
+}
+
+async function getOrder() {
+    const result = await processPayment();
+    console.log(result); // Output: "Payment processed"
+}
+
+getOrder();
+```
+
+### Error Handling with `async/await`
+
+```javascript
+function processPayment() {
+    return Promise.reject(new Error("Payment declined"));
+}
+
+async function checkout() {
+    try {
+        const result = await processPayment();
+        console.log(result);
+    } catch (error) {
+        console.error(error.message); // Output: "Payment declined"
+    }
+}
+
+checkout();
+```
+
+### Sequential vs Parallel Execution
+
+- **Sequential Execution:** Calls operations step-by-step using consecutive `await` statements.
+- **Parallel Execution:** Initiates multiple operations simultaneously using combinators like `Promise.all()`.
+
+---
+
+## Promise Combinators
+
+Promise combinators allow concurrent handling of multiple Promises simultaneously.
+
+### `Promise.all()`
+
+Waits for **all** input Promises to fulfill. Returns an array of resolved values preserving input order.
+
+- **Short-circuiting:** Rejects immediately if **any** input Promise rejects.
+
+```javascript
+const orderStatus = Promise.resolve("Order Placed");
+const paymentStatus = Promise.resolve("Payment Completed");
+const deliveryStatus = Promise.resolve("Order Delivered");
+
+Promise.all([orderStatus, paymentStatus, deliveryStatus])
+    .then((data) => console.log(data));
+// Output: ['Order Placed', 'Payment Completed', 'Order Delivered']
+```
+
+### `Promise.allSettled()`
+
+Waits until **all** Promises settle (either fulfilled or rejected). Never short-circuits.
+
+- **Return Value:** Returns an array of outcome objects with `{ status: 'fulfilled', value }` or `{ status: 'rejected', reason }`.
+
+```javascript
+const restaurant = Promise.resolve("Restaurant loaded");
+const menu = Promise.reject(new Error("Menu loading failed"));
+const coupons = Promise.resolve("Coupons loaded");
+
+Promise.allSettled([restaurant, menu, coupons])
+    .then((results) => console.log(results));
+```
+
+### `Promise.race()`
+
+Returns a Promise that settles as soon as the **first** Promise settles (whether fulfilled or rejected).
+
+```javascript
+const taskA = new Promise((resolve) => setTimeout(() => resolve("A completed"), 300));
+const taskB = new Promise((resolve) => setTimeout(() => resolve("B completed"), 100));
+
+Promise.race([taskA, taskB])
+    .then((result) => console.log(result)); // Output: "B completed"
+```
+
+### `Promise.any()`
+
+Returns a Promise that resolves as soon as the **first successful** (fulfilled) Promise resolves.
+
+- Ignores rejections unless **all** input Promises reject, in which case it throws an `AggregateError`.
+
+```javascript
+const taskA = Promise.reject(new Error("Failed"));
+const taskB = new Promise((resolve) => setTimeout(() => resolve("Success B"), 200));
+
+Promise.any([taskA, taskB])
+    .then((result) => console.log(result)); // Output: "Success B"
+```
+
+### Promise Combinators Summary
+
+| Method | Settles When... | Fulfills When... | Rejects When... |
+| :--- | :--- | :--- | :--- |
+| `Promise.all()` | All fulfill OR any rejects | All promises fulfill | Any promise rejects |
+| `Promise.allSettled()` | All promises settle | All promises settle | Never rejects |
+| `Promise.race()` | First promise settles | First promise fulfills | First promise rejects |
+| `Promise.any()` | First fulfills OR all reject | First promise fulfills | All promises reject (`AggregateError`) |
+
+---
+
+## Error Handling
+
+Error handling prevents runtime failures from crashing applications using standard `try...catch...finally` blocks or throwing custom errors.
+
+### Common Standard JavaScript Error Types
+
+- **`ReferenceError`:** Occurs when referencing an undeclared variable.
+- **`TypeError`:** Occurs when executing an invalid operation on an incompatible type.
+- **`SyntaxError`:** Occurs when writing invalid syntax.
+- **`RangeError`:** Occurs when a value falls outside allowable numeric limits.
+
+### `try...catch` and Throwing Errors
+
+```javascript
+const checkAge = (age) => {
+    if (age < 18) {
+        throw new Error("You must be at least 18");
+    }
+    return "Access granted";
+};
+
+try {
+    console.log(checkAge(16));
+} catch (error) {
+    console.error(error.message); // Output: "You must be at least 18"
+} finally {
+    console.log("Age verification completed."); // Always executes
+}
+```
+
+---
+
+## Event Loop and Concurrency Model
+
+JavaScript executes code in a single-threaded runtime using an Event Loop mechanism to handle non-blocking asynchronous operations.
+
+### Key Components
+
+1. **Call Stack:** Executes synchronous functions sequentially (LIFO).
+2. **Web/Node APIs:** Environment features handling background tasks like timers (`setTimeout`), HTTP requests (`fetch`), and DOM events.
+3. **Task Queue (Macrotask Queue):** Holds ready callbacks from timers (`setTimeout`, `setInterval`), I/O, and UI events (FIFO).
+4. **Microtask Queue:** Holds high-priority callbacks like Promise reactions (`.then()`, `.catch()`, `.finally()`), `queueMicrotask()`, and `async/await` continuations.
+
+### Execution Priority
+
+1. Synchronous code in the Call Stack executes to completion.
+2. The Event Loop drains **all items in the Microtask Queue** completely before executing next items.
+3. The Event Loop picks the oldest task from the Macrotask Queue and pushes it onto the Call Stack.
+
+```javascript
+console.log("Start");
+
+setTimeout(() => {
+    console.log("Timer Callback (Macrotask)");
+}, 0);
+
+Promise.resolve().then(() => {
+    console.log("Promise Callback (Microtask)");
+});
+
+console.log("End");
+
+// Execution Output:
+// Output: "Start"
+// Output: "End"
+// Output: "Promise Callback (Microtask)"
+// Output: "Timer Callback (Macrotask)"
 ```
