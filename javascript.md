@@ -1980,3 +1980,806 @@ console.log("End");
 // Output: "Promise Callback (Microtask)"
 // Output: "Timer Callback (Macrotask)"
 ```
+
+---
+
+## Prototypes
+
+A prototype is an object from which other objects inherit properties and methods. In JavaScript, every object has an internal link to another object called its prototype.
+
+If an object does not possess a requested property or method directly on itself, JavaScript searches for it on the object's prototype.
+
+### Own Properties vs Prototype Properties
+
+```javascript
+const user = {
+    name: "John"
+};
+
+console.log(user.name);       // Output: "John" (Own property)
+console.log(user.toString()); // Output: "[object Object]" (Inherited from Object.prototype)
+```
+
+In the example above:
+- `name` is an **own property** defined directly on the `user` object.
+- `toString()` is not defined directly on `user`, so JavaScript looks up the prototype link to `Object.prototype` where `toString()` exists.
+
+### Prototype Link Chain Representation
+
+```text
+user object
+  └── Own property: name: "John"
+        │
+        ▼ (prototype link)
+Object.prototype
+  └── Methods: toString(), valueOf(), hasOwnProperty(), ...
+        │
+        ▼ (prototype link)
+null (End of the prototype chain)
+```
+
+### Inspecting Prototypes
+
+You can inspect an object's prototype using `Object.getPrototypeOf()` (recommended) or the legacy `__proto__` accessor property:
+
+```javascript
+const user = {
+    name: "John"
+};
+
+console.log(Object.getPrototypeOf(user) === Object.prototype); // Output: true
+console.log(user.__proto__ === Object.prototype);              // Output: true
+```
+
+---
+
+## Prototypal Inheritance
+
+Prototypal inheritance allows an object to inherit properties and methods directly from another object. You can explicitly set the prototype of an object using `Object.setPrototypeOf()` or `Object.create()`.
+
+```javascript
+const person = {
+    greet() {
+        return "Hello Everyone!";
+    }
+};
+
+const user = {
+    name: "Peter"
+};
+
+// Set person as the prototype of user
+Object.setPrototypeOf(user, person);
+
+console.log(user.name);    // Output: "Peter"
+console.log(user.greet()); // Output: "Hello Everyone!"
+
+console.log(user.hasOwnProperty("name"));  // Output: true (own property)
+console.log(user.hasOwnProperty("greet")); // Output: false (inherited property)
+console.log("greet" in user);              // Output: true (exists on object or prototype chain)
+```
+
+### Property Existence Checks
+
+| Check | Meaning | Description |
+| :--- | :--- | :--- |
+| `user.hasOwnProperty("name")` | Own Property | Checks if the property belongs directly to `user`. Returns `false` for inherited properties. |
+| `user.hasOwnProperty("greet")` | Not an Own Property | Returns `false` because `greet` resides on `person`, not directly on `user`. |
+| `"greet" in user` | Prototype Chain Search | Returns `true` if `greet` exists directly on `user` or anywhere up its prototype chain. |
+
+---
+
+## Prototypes in Constructor Functions
+
+When defining constructor functions, methods are typically attached to the function's `.prototype` property. This ensures all instances share a single copy of the method in memory rather than creating a separate function copy for each instance.
+
+```javascript
+function User(name) {
+    this.name = name;
+}
+
+// Add a shared method to the prototype
+User.prototype.greet = function () {
+    return "Hello " + this.name;
+};
+
+const user1 = new User("John");
+const user2 = new User("Peter");
+
+console.log(user1.greet()); // Output: "Hello John"
+console.log(user2.greet()); // Output: "Hello Peter"
+```
+
+### Dynamic Prototype Updates
+
+Because instances share the same prototype object reference, updating or adding methods to `User.prototype` immediately reflects across all existing and future instances:
+
+```javascript
+function User(name) {
+    this.name = name;
+}
+
+User.prototype.greet = function () {
+    return "Hello " + this.name;
+};
+
+const user1 = new User("John");
+console.log(user1.greet()); // Output: "Hello John"
+
+// Updating the prototype method dynamically
+User.prototype.greet = function () {
+    return "Welcome " + this.name;
+};
+
+console.log(user1.greet()); // Output: "Welcome John"
+```
+
+---
+
+## Prototype Chain
+
+The **prototype chain** is the series of linked prototype objects JavaScript traverses when resolving a property or method that does not exist directly on the target object.
+
+JavaScript inspects the object itself first. If the property is not found, it traverses upward to the object's prototype, then that prototype's prototype, and so on until the property is found or `null` is reached (which evaluates to `undefined`).
+
+```javascript
+const animal = {
+    eat() {
+        return "Eating";
+    }
+};
+
+// Create dog inheriting from animal
+const dog = Object.create(animal);
+
+dog.bark = function () {
+    return "Barking";
+};
+
+console.log(dog.bark());     // Output: "Barking" (Found on dog)
+console.log(dog.eat());      // Output: "Eating" (Found on animal)
+console.log(dog.toString()); // Output: "[object Object]" (Found on Object.prototype)
+console.log(dog.wings);      // Output: undefined (Not found anywhere in chain)
+
+// Verifying the prototype hierarchy:
+console.log(Object.getPrototypeOf(dog) === animal); // Output: true
+console.log(Object.getPrototypeOf(Object.getPrototypeOf(dog)) === Object.prototype); // Output: true
+console.log(Object.getPrototypeOf(Object.getPrototypeOf(Object.getPrototypeOf(dog)))); // Output: null
+```
+
+---
+
+## The `this` Keyword
+
+The `this` keyword refers to the execution context in which the current function is executed. How `this` is evaluated depends on how the function is invoked, not where it is defined (with the exception of arrow functions).
+
+### Method Invocation
+
+When a regular function is invoked as a method of an object, `this` refers to the object preceding the dot:
+
+```javascript
+const user = {
+    name: "John",
+    greet() {
+        console.log(this.name);
+    }
+};
+
+user.greet(); // Output: "John"
+```
+
+Sharing functions across multiple objects binds `this` to the object currently calling the function:
+
+```javascript
+function greet() {
+    console.log(this.name);
+}
+
+const user1 = { name: "John", greet };
+const user2 = { name: "Sam", greet };
+
+user1.greet(); // Output: "John"
+user2.greet(); // Output: "Sam"
+```
+
+### `this` in Regular Functions
+
+For a plain, standalone function call (`greet()`), `this` depends on the execution mode:
+
+- **Non-Strict Mode (Classic script):** `this` defaults to the global object (`window` in browsers, `global` in Node.js).
+- **Strict Mode (`"use strict"`):** `this` remains `undefined`.
+- **ES Modules:** Modules run in strict mode by default, so `this` is `undefined`.
+
+```javascript
+function showThis() {
+    console.log(this);
+}
+
+showThis(); // Output: window (non-strict browser) or undefined (strict mode / ES modules)
+```
+
+#### Losing `this` Context (Detached Methods)
+
+Extracting an object method and calling it as a standalone function disconnects `this` from the original object:
+
+```javascript
+const user = {
+    name: "John",
+    greet() {
+        console.log(this.name);
+    }
+};
+
+const greetFunction = user.greet;
+
+// greetFunction();
+// In strict mode: TypeError: Cannot read properties of undefined (reading 'name')
+// In non-strict mode: undefined (looks up window.name)
+```
+
+### `this` in Arrow Functions
+
+Arrow functions do **not** have their own `this` binding. Instead, they capture `this` lexically from their surrounding enclosing scope at definition time.
+
+#### Arrow Function on Object Literal
+
+```javascript
+const user = {
+    name: "John",
+    greet: () => {
+        console.log(this.name);
+    }
+};
+
+user.greet(); // Output: undefined (inherits this from surrounding global/module scope)
+```
+
+#### Arrow Function Inside a Regular Method
+
+When nested inside a method or callback, an arrow function retains the outer method's `this`:
+
+```javascript
+const user = {
+    name: "John",
+    greet() {
+        const sayName = () => {
+            console.log(this.name);
+        };
+        sayName();
+    }
+};
+
+user.greet(); // Output: "John"
+```
+
+#### Arrow Function in Asynchronous Callbacks
+
+```javascript
+const user = {
+    name: "John",
+    greetLater() {
+        setTimeout(() => {
+            console.log(this.name);
+        }, 100);
+    }
+};
+
+user.greetLater(); // Output: "John" (after 100ms)
+```
+
+### `this` in Constructor Functions
+
+When invoking a function with the `new` keyword, JavaScript automatically creates a fresh blank object and binds `this` to that new instance:
+
+```javascript
+function User(name) {
+    this.name = name;
+}
+
+const user1 = new User("John");
+console.log(user1.name); // Output: "John"
+```
+
+---
+
+## Explicit Binding: `call()`, `apply()`, and `bind()`
+
+JavaScript provides explicit binding methods on `Function.prototype` to control what `this` refers to during function execution.
+
+### `call()`
+
+Calls a function immediately with a specified `this` value and arguments provided individually (comma-separated).
+
+**Syntax:**
+```javascript
+func.call(thisArg, arg1, arg2, /* ..., */ argN);
+```
+
+```javascript
+function introduce(city, role) {
+    console.log(`${this.name} is from ${city} and works as ${role}`);
+}
+
+const user = {
+    name: "John"
+};
+
+introduce.call(user, "Bangalore", "Developer");
+// Output: "John is from Bangalore and works as Developer"
+```
+
+#### Reusing Methods Across Objects
+
+```javascript
+function greet() {
+    console.log(`Hello, ${this.name}`);
+}
+
+const user1 = { name: "John" };
+const user2 = { name: "Sam" };
+
+greet.call(user1); // Output: "Hello, John"
+greet.call(user2); // Output: "Hello, Sam"
+```
+
+#### Calling Prototype Methods Explicitly
+
+```javascript
+function User(name) {
+    this.name = name;
+}
+
+User.prototype.greet = function () {
+    console.log(`Hello, ${this.name}`);
+};
+
+const user1 = new User("John");
+const user2 = new User("Sam");
+
+User.prototype.greet.call(user1); // Output: "Hello, John"
+User.prototype.greet.call(user2); // Output: "Hello, Sam"
+```
+
+### `apply()`
+
+Calls a function immediately with a specified `this` value, but accepts arguments as a single array (or array-like object).
+
+**Syntax:**
+```javascript
+func.apply(thisArg, [argsArray]);
+```
+
+```javascript
+function introduce(city, role) {
+    console.log(`${this.name} is from ${city} and works as ${role}`);
+}
+
+const user = {
+    name: "John"
+};
+
+introduce.apply(user, ["Bangalore", "Developer"]);
+// Output: "John is from Bangalore and works as Developer"
+```
+
+### `bind()`
+
+Does **not** execute the function immediately. Instead, it returns a **new function** with its `this` context permanently bound to the provided object, along with optional preset arguments.
+
+**Syntax:**
+```javascript
+const boundFunc = func.bind(thisArg, arg1, /* ..., */ argN);
+```
+
+```javascript
+const user = {
+    name: "Alex",
+    greet() {
+        console.log(`Hello, ${this.name}`);
+    }
+};
+
+const greetFn = user.greet;
+// greetFn(); // Throws TypeError in strict mode because 'this' is lost
+
+// Permanently binding 'user' as 'this'
+const boundGreet = user.greet.bind(user);
+boundGreet(); // Output: "Hello, Alex"
+```
+
+#### Partial Application with `bind()`
+
+You can preset initial arguments when binding:
+
+```javascript
+function introduce(city, role) {
+    console.log(`${this.name} - ${city} - ${role}`);
+}
+
+const user = { name: "Sam" };
+
+// Preset city as "Chennai"
+const introduceSam = introduce.bind(user, "Chennai");
+
+// Supply remaining argument later
+introduceSam("Developer"); // Output: "Sam - Chennai - Developer"
+```
+
+### Comparison: `call()` vs `apply()` vs `bind()`
+
+| Method | Execution | Argument Passing | Return Value |
+| :--- | :--- | :--- | :--- |
+| `call()` | Executes immediately | Comma-separated list (`arg1, arg2`) | Result of the function call |
+| `apply()` | Executes immediately | Array or array-like (`[arg1, arg2]`) | Result of the function call |
+| `bind()` | Does not execute immediately | Comma-separated list (preset or subsequent) | A new function with bound `this` |
+
+---
+
+## Classes
+
+Introduced in ES6, classes provide clean, declarative syntax for creating object blueprints and implementing prototypal inheritance under the hood.
+
+### Basic Class Syntax
+
+```javascript
+class User {
+    constructor(name, role) {
+        this.name = name;
+        this.role = role;
+    }
+
+    greet() {
+        console.log(`Hello, I'm ${this.name}`);
+    }
+}
+
+const user1 = new User("David", "React Developer");
+const user2 = new User("Peter", "PHP Developer");
+
+user1.greet(); // Output: "Hello, I'm David"
+user2.greet(); // Output: "Hello, I'm Peter"
+```
+
+- **`class User`**: Declares the class template.
+- **`constructor()`**: Special initialization method called automatically when creating an instance with `new`.
+- **`this.name = name`**: Attaches instance properties directly to the newly created instance.
+- **`greet()`**: Method defined on `User.prototype`, shared across all instances.
+
+### Class Method Binding
+
+Like regular methods, class methods can lose their `this` context if extracted without binding:
+
+```javascript
+class User {
+    constructor(name) {
+        this.name = name;
+    }
+
+    greet() {
+        console.log(this.name);
+    }
+}
+
+const user = new User("Alex");
+user.greet(); // Output: "Alex"
+
+const detachedGreet = user.greet;
+// detachedGreet(); // Throws TypeError: Cannot read properties of undefined (reading 'name')
+
+const boundGreet = user.greet.bind(user);
+boundGreet(); // Output: "Alex"
+```
+
+### Classes vs Constructor Functions
+
+| Feature | Constructor Function | Class |
+| :--- | :--- | :--- |
+| **Declaration** | Standard `function User(name) { ... }` | `class User { ... }` |
+| **Methods** | Attached manually via `User.prototype.method` | Declared directly within the class body |
+| **Invocation** | Can be invoked without `new` (may pollute global scope) | Must be invoked with `new` (throws `TypeError` otherwise) |
+| **Strict Mode** | Follows ambient script strictness | Class body always executes in strict mode |
+| **Hoisting** | Function declarations are hoisted | Classes are not hoisted (subject to TDZ) |
+
+### Class Inheritance: `extends` and `super`
+
+The `extends` keyword establishes a prototype link between parent and child classes. The `super` keyword calls the parent constructor or invokes parent methods.
+
+```javascript
+class User {
+    constructor(name) {
+        this.name = name;
+    }
+
+    greet() {
+        console.log(`Hello ${this.name}`);
+    }
+}
+
+class Admin extends User {
+    constructor(name, permission) {
+        super(name); // Invokes the parent constructor (must be called before accessing 'this')
+        this.permission = permission;
+    }
+
+    showPermission() {
+        console.log(this.permission);
+    }
+}
+
+const admin = new Admin("Peter", "Manage users");
+
+admin.greet();          // Output: "Hello Peter" (Inherited from User)
+admin.showPermission(); // Output: "Manage users" (Own method on Admin)
+```
+
+#### Calling Parent Methods with `super`
+
+```javascript
+class User {
+    greet() {
+        console.log("Hello from User");
+    }
+}
+
+class Admin extends User {
+    greet() {
+        console.log("Hello from Admin");
+        super.greet(); // Calls User.prototype.greet()
+    }
+}
+
+const admin = new Admin();
+admin.greet();
+// Output: "Hello from Admin"
+// Output: "Hello from User"
+```
+
+---
+
+## Generator Functions
+
+Generators are special functions that can pause execution midway and resume later, maintaining their internal execution state between invocations.
+
+- Declared using the `function*` syntax.
+- Pauses execution and emits a value using the `yield` keyword.
+- Resumes execution by calling the `.next()` method on the generator object.
+
+```javascript
+function* generateNumbers() {
+    console.log("First");
+    yield 1;
+
+    console.log("Second");
+    yield 2;
+
+    console.log("Third");
+    yield 3;
+}
+
+const generator = generateNumbers();
+
+console.log(generator.next()); // Output: First -> { value: 1, done: false }
+console.log(generator.next()); // Output: Second -> { value: 2, done: false }
+console.log(generator.next()); // Output: Third -> { value: 3, done: false }
+console.log(generator.next()); // Output: { value: undefined, done: true }
+```
+
+### Generator Iterator Result Object
+
+Every call to `.next()` returns an object with two properties:
+- **`value`**: The yielded value (or the value returned by `return`).
+- **`done`**: A boolean flag (`false` if more values remain, `true` when execution is complete).
+
+### Generator Operations
+
+- **`function*`**: Declares a generator function.
+- **Calling generator**: Returns a generator object without executing the body immediately.
+- **`yield`**: Produces a value and suspends execution.
+- **`.next()`**: Resumes execution until the next `yield` or `return`.
+- **`.next(value)`**: Resumes execution and passes a value back into the generator where it was paused.
+- **`return(value)`**: Immediately finishes the generator, setting `done: true`.
+
+---
+
+## Iterators and Iterables
+
+The iteration protocol defines a standard way to produce and consume sequences of values in JavaScript.
+
+### Iterable
+
+An **iterable** is any data structure that provides an iterator method accessible via the well-known symbol `Symbol.iterator`. Built-in iterables include `Array`, `String`, `Map`, `Set`, and `TypedArray`.
+
+### Iterator
+
+An **iterator** is an object with a `.next()` method that produces iteration results in the format `{ value: any, done: boolean }`.
+
+```javascript
+const numbers = [10, 20, 30];
+
+// Obtain the iterator from the iterable array
+const iterator = numbers[Symbol.iterator]();
+
+console.log(iterator.next()); // Output: { value: 10, done: false }
+console.log(iterator.next()); // Output: { value: 20, done: false }
+console.log(iterator.next()); // Output: { value: 30, done: false }
+console.log(iterator.next()); // Output: { value: undefined, done: true }
+```
+
+### Iterable vs Iterator
+
+| Term | Definition | Built-in Examples |
+| :--- | :--- | :--- |
+| **Iterable** | An object implementing `[Symbol.iterator]()` that produces an iterator. | `Array`, `String`, `Map`, `Set`, `NodeList` |
+| **Iterator** | An object containing a `.next()` method that yields consecutive sequence values. | The object returned by `iterable[Symbol.iterator]()` |
+
+```javascript
+const fruits = ["Apple", "Banana", "Mango"];
+
+// Check method types
+console.log(typeof fruits[Symbol.iterator]); // Output: "function"
+
+// Get iterator and step through
+const iterator = fruits[Symbol.iterator]();
+console.log(iterator.next()); // Output: { value: "Apple", done: false }
+console.log(iterator.next()); // Output: { value: "Banana", done: false }
+console.log(iterator.next()); // Output: { value: "Mango", done: false }
+console.log(iterator.next()); // Output: { value: undefined, done: true }
+```
+
+---
+
+## ES Modules (ESM)
+
+ES Modules organize code into discrete, reusable files with strict scope boundaries. Modules export features using `export` and import them in other files using `import`.
+
+### Named Exports
+
+A module can export multiple variables, functions, or classes by name.
+
+```javascript
+// math.js
+export const add = (a, b) => a + b;
+export const subtract = (a, b) => a - b;
+```
+
+```javascript
+// app.js
+import { add, subtract } from "./math.js";
+
+console.log(add(10, 5));      // Output: 15
+console.log(subtract(10, 5)); // Output: 5
+```
+
+#### Aliasing Named Imports
+
+You can rename imports using the `as` keyword:
+
+```javascript
+// user.js
+export const username = "John";
+export function greet() {
+    return `Hello, ${username}`;
+}
+
+// app.js
+import { username as name, greet } from "./user.js";
+
+console.log(name);    // Output: "John"
+console.log(greet()); // Output: "Hello, John"
+```
+
+### Default Exports
+
+A module can designate a single primary export using `export default`. Default exports can be imported without curly braces and under any custom name.
+
+```javascript
+// greet.js
+export default function greet() {
+    return "Hello!";
+}
+```
+
+```javascript
+// app.js
+import greetUser from "./greet.js";
+
+console.log(greetUser()); // Output: "Hello!"
+```
+
+### Named Exports vs Default Exports
+
+| Feature | Named Export | Default Export |
+| :--- | :--- | :--- |
+| **Quantity per module** | Multiple allowed | Only one default export per module |
+| **Import Syntax** | Imported with curly braces: `import { name }` | Imported without curly braces: `import customName` |
+| **Naming Restrictions** | Must match export name (unless aliased with `as`) | Can be given any identifier name by importer |
+
+### Benefits of Modular JavaScript
+
+1. **Code Reusability:** Write shared logic once and import it across multiple modules.
+2. **Namespace Isolation:** Declarations are file-scoped, preventing global scope pollution.
+3. **Explicit Dependencies:** Import statements clearly declare the external dependencies of each file.
+4. **Maintainability:** Isolates code into focused, manageable units.
+
+---
+
+## Memory Management and Garbage Collection
+
+JavaScript automatically manages memory allocation, usage, and deallocation through runtime memory mechanisms and garbage collection.
+
+### Memory Lifecycle
+
+1. **Allocation:** JavaScript allocates system memory when values, objects, or variables are declared.
+2. **Usage:** The application reads, writes, and operates on values in memory.
+3. **Release:** Memory that is no longer needed or reachable is released back to the operating system.
+
+```javascript
+let username = "John"; // Allocates memory for string
+username = "David";    // Allocates memory for new string; previous string becomes candidate for GC
+```
+
+> [!NOTE]
+> Reassigning a variable does not instantly purge the old value from memory; it simply removes that specific reference.
+
+### Memory Architecture: Stack vs Heap
+
+- **Call Stack:** Stores function execution frames, local execution contexts, and primitive values or object memory addresses (references). Managed via LIFO.
+- **Memory Heap:** Unstructured pool of memory where objects, arrays, and functions are dynamically allocated.
+
+### Garbage Collection (GC)
+
+Garbage collection is an automatic runtime background process that identifies and reclaims memory allocated to objects that are no longer **reachable** by the application.
+
+- **Reachable Objects:** Values accessible directly from root references (global variables, local variables in the current call stack) or indirectly through other reachable objects.
+- **Unreachable Objects:** Objects that cannot be reached through any active reference chain from root references. These are safely reclaimed by the garbage collector.
+
+```javascript
+let user = { name: "John" };
+let anotherUser = user;
+
+user = null; // Removes reference from 'user'
+```
+
+- Both `user` and `anotherUser` initially referenced the same object in the heap.
+- Setting `user = null` removes only one reference.
+- Because `anotherUser` still references the object, it remains **reachable** and is **not** garbage collected.
+
+### Memory Leaks
+
+A **memory leak** occurs when an application retains references to memory that is no longer needed, preventing the garbage collector from reclaiming it.
+
+#### Common Causes of Memory Leaks
+
+1. **Unbounded Data Accumulation (Global Caches/Arrays):**
+   ```javascript
+   const data = [];
+
+   function storeData() {
+       data.push(new Array(10000).fill("Hello"));
+   }
+
+   storeData();
+   storeData();
+   storeData();
+   ```
+
+2. **Forgotten Event Listeners:**
+   ```javascript
+   function setup() {
+       const user = { name: "John" };
+
+       // If listener is never removed, 'user' remains retained in memory through the callback closure
+       window.addEventListener("resize", function () {
+           console.log(user.name);
+       });
+   }
+   ```
+
+3. **Uncleared Timers and Intervals:** Unstopped `setInterval()` or `setTimeout()` callbacks holding closures over outer variables.
+
+#### Preventing Memory Leaks
+
+- **Remove Event Listeners:** Call `removeEventListener()` when components unmount or event listeners are no longer needed.
+- **Clear Timers:** Always cancel timers using `clearTimeout()` or `clearInterval()`.
+- **Avoid Global Scope Pollution:** Scope variables locally and avoid unneeded long-lived collections.
+- **Nullify Obsolete References:** Clean up entries from caches, arrays, maps, and subscriptions when done.
