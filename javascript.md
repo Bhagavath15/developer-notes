@@ -2001,6 +2001,7 @@ console.log(user.toString()); // Output: "[object Object]" (Inherited from Objec
 ```
 
 In the example above:
+
 - `name` is an **own property** defined directly on the `user` object.
 - `toString()` is not defined directly on `user`, so JavaScript looks up the prototype link to `Object.prototype` where `toString()` exists.
 
@@ -2291,6 +2292,7 @@ JavaScript provides explicit binding methods on `Function.prototype` to control 
 Calls a function immediately with a specified `this` value and arguments provided individually (comma-separated).
 
 **Syntax:**
+
 ```javascript
 func.call(thisArg, arg1, arg2, /* ..., */ argN);
 ```
@@ -2345,6 +2347,7 @@ User.prototype.greet.call(user2); // Output: "Hello, Sam"
 Calls a function immediately with a specified `this` value, but accepts arguments as a single array (or array-like object).
 
 **Syntax:**
+
 ```javascript
 func.apply(thisArg, [argsArray]);
 ```
@@ -2367,6 +2370,7 @@ introduce.apply(user, ["Bangalore", "Developer"]);
 Does **not** execute the function immediately. Instead, it returns a **new function** with its `this` context permanently bound to the provided object, along with optional preset arguments.
 
 **Syntax:**
+
 ```javascript
 const boundFunc = func.bind(thisArg, arg1, /* ..., */ argN);
 ```
@@ -2567,6 +2571,7 @@ console.log(generator.next()); // Output: { value: undefined, done: true }
 ### Generator Iterator Result Object
 
 Every call to `.next()` returns an object with two properties:
+
 - **`value`**: The yielded value (or the value returned by `return`).
 - **`done`**: A boolean flag (`false` if more values remain, `true` when execution is complete).
 
@@ -2751,6 +2756,7 @@ A **memory leak** occurs when an application retains references to memory that i
 #### Common Causes of Memory Leaks
 
 1. **Unbounded Data Accumulation (Global Caches/Arrays):**
+
    ```javascript
    const data = [];
 
@@ -2764,6 +2770,7 @@ A **memory leak** occurs when an application retains references to memory that i
    ```
 
 2. **Forgotten Event Listeners:**
+
    ```javascript
    function setup() {
        const user = { name: "John" };
@@ -2783,3 +2790,623 @@ A **memory leak** occurs when an application retains references to memory that i
 - **Clear Timers:** Always cancel timers using `clearTimeout()` or `clearInterval()`.
 - **Avoid Global Scope Pollution:** Scope variables locally and avoid unneeded long-lived collections.
 - **Nullify Obsolete References:** Clean up entries from caches, arrays, maps, and subscriptions when done.
+
+---
+
+## Map
+
+A `Map` is a built-in collection of keyed data items, similar to an `Object`. However, the main difference is that `Map` allows keys of any data type, including primitive types, objects, and functions. In addition, a `Map` preserves the insertion order of its elements.
+
+```javascript
+const scores = new Map();
+
+scores.set("John", 90);
+scores.set("David", 75);
+
+console.log(scores.get("John"));   // Output: 90
+console.log(scores.size);          // Output: 2
+console.log(scores.has("David"));  // Output: true
+```
+
+### Map Methods and Properties
+
+- **`set(key, value)`**: Adds or updates an entry with a specified key and value.
+- **`get(key)`**: Retrieves the value associated with the specified key, or `undefined` if the key does not exist.
+- **`has(key)`**: Returns a boolean indicating whether the specified key exists in the map.
+- **`delete(key)`**: Removes the entry associated with the key.
+- **`clear()`**: Removes all entries from the map.
+- **`size`**: Property that returns the total count of key-value pairs.
+
+### Using Objects as Map Keys
+
+In plain JavaScript objects, keys are automatically converted to strings or symbols. In a `Map`, objects can be used directly as keys without being converted into strings.
+
+```javascript
+const user = { id: 1 };
+const data = new Map();
+
+data.set(user, "Admin");
+
+console.log(data.get(user)); // Output: "Admin"
+```
+
+---
+
+## Set
+
+A `Set` is a built-in collection of unique values. A value in a `Set` may only occur once; duplicate entries are automatically discarded.
+
+```javascript
+const numbers = new Set([10, 20, 10, 30, 20]);
+
+console.log(numbers);      // Output: Set(3) { 10, 20, 30 }
+console.log(numbers.size); // Output: 3
+```
+
+### Removing Duplicates from an Array
+
+A common use case for `Set` is eliminating duplicate items from an array by combining `Set` with the spread operator (`...`):
+
+```javascript
+const values = [1, 2, 2, 3, 3, 4];
+const uniqueValues = [...new Set(values)];
+
+console.log(uniqueValues); // Output: [1, 2, 3, 4]
+```
+
+---
+
+## WeakMap
+
+A `WeakMap` is a collection of key-value pairs where the keys **must be objects** (or non-registered symbols). Primitive types are not permitted as keys.
+
+The primary distinction of a `WeakMap` is that references to key objects are held **weakly**. If there are no other references to a key object elsewhere in memory, JavaScript can garbage collect that object, and its corresponding entry in the `WeakMap` is automatically cleaned up.
+
+```javascript
+let user = { name: "John" };
+
+const privateData = new WeakMap();
+privateData.set(user, { passwordAttempts: 2 });
+
+console.log(privateData.get(user)); // Output: { passwordAttempts: 2 }
+
+// When 'user' is nullified, the object can be garbage collected
+user = null;
+```
+
+### Characteristics of WeakMap
+
+- **Weak References:** Does not prevent key objects from being garbage collected.
+- **Non-Iterable:** Cannot be iterated using `for..of` or methods like `.keys()`, `.values()`, or `.entries()`.
+- **No `size` Property:** Does not provide a `.size` property because elements can be collected unpredictably by garbage collection.
+- **Use Case:** Associating private data, caches, or metadata with DOM elements or objects without causing memory leaks.
+
+---
+
+## WeakSet
+
+A `WeakSet` is a special type of `Set` that can only store objects (or non-registered symbols). Like `WeakMap`, objects inside a `WeakSet` are held **weakly**.
+
+If an object stored in a `WeakSet` has no other active references, it becomes eligible for garbage collection.
+
+```javascript
+let user = { name: "John" };
+
+const activeUsers = new WeakSet();
+
+activeUsers.add(user);
+console.log(activeUsers.has(user)); // Output: true
+
+activeUsers.delete(user);
+console.log(activeUsers.has(user)); // Output: false
+```
+
+### Characteristics of WeakSet
+
+- **Object-Only:** Can only store objects, not primitive values.
+- **Weak References:** Members do not prevent garbage collection.
+- **Non-Iterable:** Has no `.size` property and cannot be looped over.
+- **Use Case:** Tracking object state or tags (e.g., verifying whether an object has already been processed or logged in) without keeping it alive in memory.
+
+---
+
+## Comparison: Map, Set, WeakMap, and WeakSet
+
+| Feature | Map | Set | WeakMap | WeakSet |
+| :--- | :--- | :--- | :--- | :--- |
+| **Stores** | Key-value pairs | Unique values | Key-value pairs | Unique objects |
+| **Keys / Members** | Any data type | Any data type | Objects or non-registered symbols | Objects or non-registered symbols |
+| **`.size` Property** | Yes | Yes | No | No |
+| **Iterable** | Yes (`for..of`, `forEach`) | Yes (`for..of`, `forEach`) | No | No |
+| **Garbage Collection** | Strong references | Strong references | Weak references for keys | Weak references for members |
+
+---
+
+## Symbol
+
+`Symbol` is a primitive data type introduced in ES6 that represents a completely unique and immutable value. Symbols are commonly used as property keys on objects to prevent key collisions.
+
+```javascript
+const a = Symbol("id");
+const b = Symbol("id");
+
+console.log(a === b); // Output: false
+```
+
+Even though both symbols were created with the identical description `"id"`, every call to `Symbol()` produces a new, unique symbol. The string passed to `Symbol()` is purely a description used for debugging.
+
+### Using Symbols as Object Keys
+
+Symbols can be used as computed property keys on objects:
+
+```javascript
+const id = Symbol("id");
+
+const user = {
+    name: "John",
+    [id]: 101
+};
+
+console.log(user.name); // Output: "John"
+console.log(user[id]);  // Output: 101
+```
+
+Because symbols are distinct from string keys, a symbol key does not overwrite a string property with the same name:
+
+```javascript
+const id = Symbol("id");
+
+const user = {
+    id: 100,
+    [id]: 200
+};
+
+console.log(user.id);  // Output: 100
+console.log(user[id]); // Output: 200
+```
+
+### Symbol Enumeration Behavior
+
+Symbol keys are hidden from standard object property enumeration loops and serialization methods:
+
+- Ignored by `for...in` loops.
+- Ignored by `Object.keys()` and `Object.values()`.
+- Ignored by `JSON.stringify()`.
+
+```javascript
+const secret = Symbol("secret");
+
+const user = {
+    name: "John",
+    [secret]: "hidden value"
+};
+
+console.log(Object.keys(user));       // Output: ["name"]
+console.log(Object.values(user));     // Output: ["John"]
+console.log(JSON.stringify(user));    // Output: {"name":"John"}
+
+// Retrieving symbol properties
+console.log(Object.getOwnPropertySymbols(user)); // Output: [Symbol(secret)]
+console.log(Reflect.ownKeys(user));              // Output: ["name", Symbol(secret)]
+```
+
+### Global Symbol Registry
+
+JavaScript provides a global symbol registry that allows symbols to be shared across different files or codebases using `Symbol.for()` and `Symbol.keyFor()`.
+
+- **`Symbol.for(key)`**: Looks up a symbol in the global registry with the specified key. If found, it returns the existing symbol; otherwise, it creates and registers a new one.
+- **`Symbol.keyFor(sym)`**: Retrieves the shared key string from the global registry for a given symbol.
+
+```javascript
+const a = Symbol.for("user");
+const b = Symbol.for("user");
+
+console.log(a === b); // Output: true (references the same registered symbol)
+
+const id = Symbol.for("userId");
+console.log(Symbol.keyFor(id)); // Output: "userId"
+```
+
+---
+
+## Document Object Model (DOM)
+
+The Document Object Model (DOM) is a programming interface and hierarchical tree representation of an HTML document created by the browser upon loading a web page. JavaScript can interact with the DOM tree to inspect, manipulate, create, or delete HTML elements, attributes, and styles dynamically.
+
+### Selecting DOM Elements
+
+The browser provides several methods on `document` to query and select elements:
+
+| Method | Purpose | Return Value |
+| :--- | :--- | :--- |
+| `getElementById()` | Selects an element by its unique `id` attribute. | Single element or `null` |
+| `querySelector()` | Selects the first element that matches a specified CSS selector. | Single element or `null` |
+| `querySelectorAll()` | Selects all elements matching a specified CSS selector. | Static `NodeList` |
+| `getElementsByClassName()` | Selects elements matching a given CSS class name. | Live `HTMLCollection` |
+| `getElementsByTagName()` | Selects elements matching a specified HTML tag name. | Live `HTMLCollection` |
+
+#### Example
+
+```html
+<h1 id="title">Hello</h1>
+<p class="message">Welcome!</p>
+<p class="message">Learn JavaScript</p>
+<button>Click me</button>
+```
+
+```javascript
+// Select one element by ID
+const title = document.getElementById("title");
+
+// Select the first matching CSS selector
+const message = document.querySelector(".message");
+
+// Select all matching CSS selectors
+const messages = document.querySelectorAll(".message");
+
+console.log(title.textContent);   // Output: "Hello"
+console.log(message.textContent); // Output: "Welcome!"
+console.log(messages.length);     // Output: 2
+```
+
+---
+
+## Event Listeners
+
+An **event** represents an action or occurrence that takes place in the browser—such as a user click, keypress, form submission, or mouse hover.
+
+An **event listener** is a procedure that waits for a specified event to occur on a target element and executes a callback function in response.
+
+### Adding and Removing Event Listeners
+
+- **`addEventListener(event, handler)`**: Registers an event handler for a specified event type.
+- **`removeEventListener(event, handler)`**: Detaches an event handler. It requires a reference to the exact same function that was registered.
+
+```html
+<button id="clickBtn">Click me</button>
+```
+
+```javascript
+const button = document.getElementById("clickBtn");
+
+// Using an anonymous function
+button.addEventListener("click", function () {
+    console.log("Button clicked!");
+});
+
+// Using a named function reference (enables removal)
+function handleClick() {
+    console.log("Button clicked!");
+}
+
+button.addEventListener("click", handleClick);    // Registers the event
+button.removeEventListener("click", handleClick); // Unregisters the event
+```
+
+---
+
+## Event Propagation
+
+Event propagation is the process by which an event travels through the DOM hierarchy when an interaction occurs on an element (such as clicking a nested button).
+
+Event propagation occurs in three distinct phases:
+
+1. **Capturing Phase (Trickling):** The event travels downward from `window` and ancestor elements toward the target element.
+2. **Target Phase:** The event reaches the target element where the user initiated the interaction.
+3. **Bubbling Phase:** The event bubbles back upward through ancestor elements toward `document` and `window`.
+
+```
+         [ Capturing Phase: Top -> Down ]
+      Window -> Document -> Body -> Parent
+                       |
+                  [ Target Phase ]
+                   <button> (Child)
+                       |
+         [ Bubbling Phase: Down -> Top ]
+      Parent -> Body -> Document -> Window
+```
+
+### Event Bubbling
+
+In the bubbling phase, the event begins at the innermost target element that was interacted with and travels upward through its parent elements. This is the default handling mode for `addEventListener()`.
+
+```html
+<div id="grandparent">
+    Grandparent
+    <div id="parent">
+        Parent
+        <button id="child">Click me</button>
+    </div>
+</div>
+```
+
+```javascript
+const grandparent = document.getElementById("grandparent");
+const parent = document.getElementById("parent");
+const child = document.getElementById("child");
+
+grandparent.addEventListener("click", () => {
+    console.log("Grandparent clicked");
+});
+
+parent.addEventListener("click", () => {
+    console.log("Parent clicked");
+});
+
+child.addEventListener("click", () => {
+    console.log("Child clicked");
+});
+
+// Clicking #child outputs:
+// "Child clicked"
+// "Parent clicked"
+// "Grandparent clicked"
+```
+
+### `event.stopPropagation()`
+
+`event.stopPropagation()` prevents an event from propagating further up or down the DOM hierarchy during the capture or bubble phases.
+
+```javascript
+child.addEventListener("click", (event) => {
+    console.log("Child clicked");
+    event.stopPropagation(); // Halts propagation to parent elements
+});
+
+parent.addEventListener("click", () => {
+    console.log("Parent clicked");
+});
+
+// Clicking #child outputs:
+// "Child clicked" (Parent listener does not run)
+```
+
+> [!NOTE]
+>
+> - `event.stopPropagation()` stops the event from reaching further listeners along the propagation chain.
+> - It does not prevent other listeners on the current element from executing (use `event.stopImmediatePropagation()` for that).
+> - It does **not** cancel default browser actions. To cancel browser default behavior, use `event.preventDefault()`.
+
+### Event Capturing
+
+In the capturing phase, the event travels from the outermost ancestor downward toward the target element before bubbling begins. To execute a handler during the capturing phase, pass `true` or `{ capture: true }` as the third parameter to `addEventListener()`:
+
+```javascript
+parent.addEventListener(
+    "click",
+    () => {
+        console.log("Parent (Capturing)");
+    },
+    true // Enables capturing mode
+);
+
+// Alternative options object syntax:
+parent.addEventListener(
+    "click",
+    () => {
+        console.log("Parent (Capturing)");
+    },
+    { capture: true }
+);
+```
+
+### `event.preventDefault()`
+
+`event.preventDefault()` cancels the browser's default native action associated with an event, provided the event is cancelable.
+
+Common examples:
+
+- Preventing an anchor tag (`<a>`) from navigating to another URL.
+- Preventing a form submit button (`<form>`) from refreshing or submitting the page.
+- Preventing a checkbox from toggling its checked state.
+
+```html
+<a href="https://example.com" id="myLink">Visit website</a>
+```
+
+```javascript
+const link = document.getElementById("myLink");
+
+link.addEventListener("click", (event) => {
+    event.preventDefault(); // Prevents page navigation
+    console.log("Link clicked");
+});
+
+// Clicking the link outputs "Link clicked", but the browser does not navigate to example.com.
+```
+
+---
+
+## Event Delegation
+
+Event delegation is a design pattern where a single event listener is attached to a parent element rather than attaching individual listeners to multiple child elements. It takes advantage of **event bubbling**, allowing events triggered on child elements to bubble up to the parent handler.
+
+```html
+<div id="parent">
+    <button>Apple</button>
+    <button>Orange</button>
+    <button>Mango</button>
+</div>
+```
+
+```javascript
+const parent = document.getElementById("parent");
+
+parent.addEventListener("click", (event) => {
+    console.log(event.target.textContent);
+});
+
+// Clicking "Orange" outputs: "Orange"
+```
+
+### `event.target` vs `event.currentTarget`
+
+- **`event.target`**: The actual element that initiated the event (the innermost element clicked).
+- **`event.currentTarget`**: The element to which the event handler is currently attached (the parent listener element).
+
+```html
+<div id="parent">
+    <button id="child">Click me</button>
+</div>
+```
+
+```javascript
+const parent = document.getElementById("parent");
+
+parent.addEventListener("click", (event) => {
+    console.log("Target:", event.target.id);                 // Output: "Target: child"
+    console.log("Current target:", event.currentTarget.id); // Output: "Current target: parent"
+});
+```
+
+### Handling Nested Elements with `event.target.closest()`
+
+When child elements contain nested tags (such as `<span>` or `<i>` inside a `<button>`), `event.target` may refer to the inner `<span>` instead of the button itself. Using `event.target.closest()` finds the nearest ancestor matching the desired selector:
+
+```html
+<div id="parent">
+    <button data-fruit="apple">
+        <span>Apple</span>
+    </button>
+</div>
+```
+
+```javascript
+const parent = document.getElementById("parent");
+
+parent.addEventListener("click", (event) => {
+    const button = event.target.closest("button");
+
+    if (button && parent.contains(button)) {
+        console.log(button.dataset.fruit); // Output: "apple"
+    }
+});
+```
+
+### When to Use Event Delegation
+
+- **Large collections:** Handling lists or grids with dozens or hundreds of items without registering individual listeners.
+- **Dynamic elements:** Elements added to the DOM after the initial page load automatically trigger the parent listener without needing new event bindings.
+- **Memory efficiency:** Significantly reduces memory consumption by keeping the number of active event listeners low.
+
+---
+
+## Debouncing
+
+Debouncing is an optimization technique that delays the execution of a function until a specified period of inactivity has elapsed since the last time the event was triggered. If the event fires again before the timer expires, the previous timer is reset.
+
+### Implementation
+
+```javascript
+function debounce(callback, delay) {
+    let timer;
+
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            callback.apply(this, args);
+        }, delay);
+    };
+}
+
+const searchQuery = (query) => {
+    console.log("Searching for query:", query);
+};
+
+const debounceSearched = debounce(searchQuery, 500);
+
+// Rapid keystrokes within 500ms
+debounceSearched("j");
+debounceSearched("ja");
+debounceSearched("jav");
+debounceSearched("java");
+
+// Only the last call executes after 500ms of inactivity:
+// Output: "Searching for query: java"
+```
+
+### Common Use Cases
+
+- Search input suggestions (waiting for the user to pause typing before sending an API request).
+- Window resizing adjustments (recalculating layouts once resizing stops).
+- Form auto-saving (saving draft state after the user finishes input).
+
+---
+
+## Throttling
+
+Throttling is an optimization technique that limits the execution rate of a function to at most once per specified time interval, regardless of how frequently the event is triggered.
+
+While debouncing resets the timer on each invocation, throttling guarantees regular execution at defined intervals.
+
+### Implementation
+
+```javascript
+function throttle(callback, delay) {
+    let last = 0;
+
+    return function (...args) {
+        const now = Date.now();
+        if (now - last >= delay) {
+            last = now;
+            callback.apply(this, args);
+        }
+    };
+}
+
+function handleScroll() {
+    console.log("Handling scroll event");
+}
+
+const throttledScroll = throttle(handleScroll, 500);
+
+throttledScroll(); // Executes immediately
+throttledScroll(); // Ignored (within 500ms window)
+throttledScroll(); // Ignored (within 500ms window)
+```
+
+### Common Use Cases
+
+- Scroll listeners (e.g., calculating page read progress or infinite scroll triggers).
+- Mouse movement and drag operations (`mousemove`, `drag`).
+- Preventing multiple rapid clicks on action or submission buttons.
+
+---
+
+## Recursion
+
+Recursion is a programming technique where a function calls itself to break down a complex problem into smaller, self-similar sub-problems until reaching a termination condition known as the **base case**.
+
+### Key Components of Recursion
+
+1. **Base Case:** The condition under which the function stops calling itself and returns a result directly. Without a base case, recursion continues indefinitely, causing a `RangeError: Maximum call stack size exceeded` (stack overflow).
+2. **Recursive Step:** The part where the function calls itself with modified input, progressing closer to the base case.
+
+### Example
+
+```javascript
+function count(num) {
+    // Base case: Stop when num exceeds 5
+    if (num > 5) {
+        return;
+    }
+
+    console.log(num);
+
+    // Recursive call with incremented value
+    count(num + 1);
+}
+
+count(1);
+// Output:
+// 1
+// 2
+// 3
+// 4
+// 5
+```
+
+### Recursion vs Iteration
+
+- **Recursion** can make complex nested structures (like tree traversal, nested objects, and divide-and-conquer algorithms) cleaner and easier to read.
+- **Iteration** (loops) is typically more memory-efficient in JavaScript because each recursive call creates a new execution stack frame.
