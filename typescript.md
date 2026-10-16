@@ -883,7 +883,7 @@ type MathOperation = (a: number, b: number) => number;
 // 2. Implement functions matching that type signature
 const multiply: MathOperation = (a, b) => a * b;
 const subtract: MathOperation = (a, b) => a - b;
-const divide: MathOperation = (a, b) => a / y;
+const divide: MathOperation = (a, b) => a / b;
 
 console.log(multiply(4, 5)); // Output: 20
 ```
@@ -949,39 +949,79 @@ execute((value) => {
 
 ## Type Narrowing & Type Guards
 
-When a variable has a union type (like `string | number` or `unknown`), you must narrow it down before calling type-specific methods.
+When working with union types (like `string | number` or `unknown`), TypeScript requires you to narrow down the broad type into a specific one before calling type-specific methods.
 
-### 1. `typeof` Type Guard
+### 1. Narrowing Using `typeof`
+
+Used for primitive types (`"string"`, `"number"`, `"boolean"`, `"symbol"`, `"undefined"`, `"object"`, `"function"`):
 
 ```typescript
-function displayValue(value: string | number | boolean): void {
+function printValue(value: string | number): void {
     if (typeof value === "string") {
         console.log(value.toUpperCase());
-    } else if (typeof value === "number") {
-        console.log(value.toFixed(2));
     } else {
-        console.log(value);
+        console.log(value.toFixed(2));
     }
 }
+
+printValue("hello"); // Output: "HELLO"
+printValue(25);      // Output: "25.00"
 ```
 
-### 2. `instanceof` Type Guard
+### 2. Narrowing Using Truthiness Checks
 
-Checks if an object is an instance of a specific class or constructor:
+Checks whether a value is present (`truthy`) or absent (`null`/`undefined`):
 
 ```typescript
-function formatTimestamp(value: Date | string): string {
-    if (value instanceof Date) {
-        return value.toISOString();
+function printName(name: string | null): void {
+    if (name) {
+        console.log(name.toUpperCase());
     } else {
-        return new Date(value).toISOString();
+        console.log("No name provided");
+    }
+}
+
+function printAge(age: number | null): void {
+    if (age !== null) {
+        console.log(age);
     }
 }
 ```
 
-### 3. The `in` Operator Type Guard
+### 3. Narrowing Using Equality Checks (`===`, `!==`)
 
-Checks whether a property key exists on an object:
+```typescript
+function displayStatus(value: string | number | null): void {
+    if (value === null) {
+        console.log("Value is missing");
+    } else if (typeof value === "string") {
+        console.log(value.toUpperCase());
+    } else {
+        console.log(value.toFixed(2));
+    }
+}
+```
+
+### 4. Narrowing Using `Array.isArray()`
+
+Distinguishes between arrays and non-arrays:
+
+```typescript
+function processItems(value: string | number[]): void {
+    if (Array.isArray(value)) {
+        console.log(`Array length: ${value.length}`);
+    } else {
+        console.log(`String value: ${value.toUpperCase()}`);
+    }
+}
+
+processItems([10, 20, 30]); // Output: "Array length: 3"
+processItems("hello");      // Output: "String value: HELLO"
+```
+
+### 5. Narrowing Using the `in` Operator
+
+Checks whether a specific property exists on an object:
 
 ```typescript
 type Admin = { name: string; permissions: string[] };
@@ -996,9 +1036,137 @@ function showUserDetails(user: Admin | Customer): void {
 }
 ```
 
-### 4. Discriminated Unions (Tagged Unions)
+### 6. Narrowing Using `instanceof`
 
-A **discriminated union** is a pattern where every object in a union has a shared literal property (a discriminant tag). It is ideal for API responses or state machines:
+Checks whether an object was created by a specific class or constructor function:
+
+```typescript
+function formatTimestamp(value: Date | string): string {
+    if (value instanceof Date) {
+        return value.toISOString();
+    } else {
+        return new Date(value).toISOString();
+    }
+}
+```
+
+### 7. Custom Type Guards Using `is` (Type Predicates)
+
+A custom type guard is a function that returns a **type predicate** in the form `parameter is Type`. When the function returns `true`, TypeScript narrows the variable inside the conditional block:
+
+```typescript
+// 1. Primitive custom type guard
+function isString(value: unknown): value is string {
+    return typeof value === "string";
+}
+
+function printCustomValue(value: unknown): void {
+    if (isString(value)) {
+        console.log(value.toUpperCase()); // TypeScript knows value is a string!
+    }
+}
+
+// 2. Object custom type guard
+interface UserAccount {
+    name: string;
+    age: number;
+}
+
+function isUser(value: unknown): value is UserAccount {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        "name" in value &&
+        "age" in value &&
+        typeof (value as UserAccount).name === "string" &&
+        typeof (value as UserAccount).age === "number"
+    );
+}
+
+function printUser(value: unknown): void {
+    if (isUser(value)) {
+        console.log(`User: ${value.name}, Age: ${value.age}`);
+    } else {
+        console.log("Invalid user object");
+    }
+}
+
+printUser({ name: "Peter", age: 25 }); // Output: "User: Peter, Age: 25"
+printUser({ name: "Peter", age: "25" }); // Output: "Invalid user object"
+```
+
+### Narrowing Methods Summary Table
+
+| Narrowing Method | How It Works | Example |
+| :--- | :--- | :--- |
+| **`typeof`** | Checks primitive types (`string`, `number`, `boolean`, etc.) | `if (typeof x === "string")` |
+| **Truthiness** | Checks whether a value is not `null`, `undefined`, `""`, or `0` | `if (name) { ... }` |
+| **Equality** | Uses comparisons like `===` or `!==` | `if (value === null)` |
+| **`Array.isArray()`** | Checks whether a value is an array | `if (Array.isArray(x))` |
+| **`in` operator** | Checks whether an object contains a property key | `if ("permissions" in user)` |
+| **`instanceof`** | Checks if an object is an instance of a class/constructor | `if (val instanceof Date)` |
+| **Custom type guard** | Uses a function returning `parameter is Type` | `function isUser(x): x is User` |
+| **Discriminated union** | Uses a shared literal property to distinguish variants | `if (res.status === "success")` |
+
+---
+
+## Discriminated Unions (Tagged Unions)
+
+A **discriminated union** is a pattern where every object variant in a union shares a common literal property (called a **tag** or **discriminant**). It is the cleanest way to handle state machines, Redux actions, or API responses.
+
+### 1. Payment Methods Example
+
+```typescript
+type CashPayment = {
+    method: "cash";
+    amount: number;
+    cashReceived: number;
+};
+
+type CardPayment = {
+    method: "card";
+    amount: number;
+    cardNumber: string;
+};
+
+type Payment = CashPayment | CardPayment;
+
+function processPaymentMethod(payment: Payment): void {
+    if (payment.method === "cash") {
+        console.log(`Cash received: $${payment.cashReceived}`);
+    } else {
+        console.log(`Card charged: ****-****-****-${payment.cardNumber.slice(-4)}`);
+    }
+}
+
+processPaymentMethod({ method: "cash", amount: 500, cashReceived: 600 });
+processPaymentMethod({ method: "card", amount: 1000, cardNumber: "1234567890123456" });
+```
+
+### 2. Multi-State Orders with `switch`
+
+```typescript
+type Order =
+    | { status: "placed"; orderId: number }
+    | { status: "shipped"; orderId: number; trackingId: string }
+    | { status: "delivered"; orderId: number; deliveredAt: string };
+
+function trackOrder(order: Order): void {
+    switch (order.status) {
+        case "placed":
+            console.log(`Order ${order.orderId} placed.`);
+            break;
+        case "shipped":
+            console.log(`Tracking ID: ${order.trackingId}`);
+            break;
+        case "delivered":
+            console.log(`Delivered at: ${order.deliveredAt}`);
+            break;
+    }
+}
+```
+
+### 3. API Response States
 
 ```typescript
 type ApiResponse =
@@ -1026,12 +1194,20 @@ function renderUI(response: ApiResponse): string {
 
 A **type assertion** tells TypeScript: *"I know more about this value's type than you do."*
 
+- Type assertion means telling TypeScript what type you believe a value has.
+
 ```typescript
 // TypeScript thinks getElementById returns HTMLElement | null
 const searchInput = document.getElementById("search-box") as HTMLInputElement;
 
 // Now accessing .value is completely valid:
 console.log(searchInput.value);
+
+let value: unknown = "Hello";
+
+let result = (value as string).toUpperCase();
+
+let result = (<string>value).toUpperCase();
 ```
 
 ### Non-Null Assertion (`!`)
@@ -1300,6 +1476,8 @@ const preview: UserPreview = {
 };
 ```
 
+- The | means either property name can be included in the set of keys to select.
+
 ### 5. `Omit<T, Keys>` (Exclude specific properties)
 
 ```typescript
@@ -1316,6 +1494,16 @@ const publicUser: PublicUser = {
 ### 6. `Record<Keys, ValueType>` (Construct key-value dictionary)
 
 ```typescript
+// Arbitrary string keys with numeric values:
+type Scores = Record<string, number>;
+
+const userScores: Scores = {
+    Peter: 90,
+    John: 85,
+    Sam: 95,
+};
+
+// Restricting keys to specific union members:
 type RoleNames = "admin" | "editor" | "guest";
 
 interface RoleDetails {
@@ -1328,4 +1516,437 @@ const rolePermissions: Record<RoleNames, RoleDetails> = {
     editor: { level: 2, canDelete: false },
     guest: { level: 3, canDelete: false },
 };
+```
+
+### 7. `Exclude<T, U>` (Remove types from a union)
+
+`Exclude<T, U>` strips away members from union `T` that are assignable to `U`:
+
+```typescript
+type StatusOptions = "pending" | "success" | "failed";
+
+type ActiveOptions = Exclude<StatusOptions, "failed">; // "pending" | "success"
+
+let currentStatus: ActiveOptions = "pending";
+// currentStatus = "failed"; // Error: "failed" has been excluded!
+
+type PrimitiveOptions = Exclude<string | number | boolean, string>; // number | boolean
+```
+
+> [!NOTE]
+> `Exclude` works on **unions**, not object properties. If you want to omit a property from an object, use `Omit<T, Keys>`.
+
+### 8. `Extract<T, U>` (Keep matching types from a union)
+
+`Extract<T, U>` does the opposite of `Exclude`: it keeps only the members of union `T` that match `U`:
+
+```typescript
+type FileStatus = "pending" | "success" | "failed";
+
+type FinishedStatus = Extract<FileStatus, "success" | "failed">; // "success" | "failed"
+
+let fileUpload: FinishedStatus = "success"; // Valid
+// fileUpload = "pending"; // Error: "pending" was not extracted!
+```
+
+### 9. `NonNullable<T>` (Remove `null` and `undefined`)
+
+Removes `null` and `undefined` from a union type:
+
+```typescript
+type NullableString = string | null | undefined;
+
+type CleanString = NonNullable<NullableString>; // string
+
+let validName: CleanString = "Peter"; // Valid
+// validName = null;      // Error: null is not assignable!
+// validName = undefined; // Error: undefined is not assignable!
+```
+
+---
+
+## The `keyof` Type Operator
+
+The `keyof` operator produces a string or numeric literal union of all known public property names (keys) of an object type.
+
+```typescript
+type UserAccount = {
+    name: string;
+    age: number;
+};
+
+// Equivalent to: type UserKeys = "name" | "age"
+type UserKeys = keyof UserAccount;
+
+let allowedKey: UserKeys = "name"; // Valid
+allowedKey = "age";               // Valid
+// allowedKey = "email";          // Error: Type '"email"' is not assignable to 'UserKeys'
+```
+
+### Safely Accessing Object Properties with `keyof`
+
+```typescript
+function getObjectValue(user: UserAccount, key: keyof UserAccount) {
+    return user[key];
+}
+
+const sampleUser: UserAccount = { name: "Peter", age: 25 };
+console.log(getObjectValue(sampleUser, "name")); // Output: "Peter"
+console.log(getObjectValue(sampleUser, "age"));  // Output: 25
+```
+
+### Combining `keyof` with Generics
+
+Using `K extends keyof T` guarantees that `key` is a valid property on object `T`, and returns `T[K]` with exact type inference:
+
+```typescript
+function getProperty<T, K extends keyof T>(object: T, key: K): T[K] {
+    return object[key];
+}
+
+const developer = {
+    name: "Peter",
+    age: 25,
+    isAvailable: true,
+};
+
+const devName = getProperty(developer, "name"); // Inferred type: string ("Peter")
+const devAge = getProperty(developer, "age");   // Inferred type: number (25)
+
+// getProperty(developer, "salary"); // Error: Argument of type '"salary"' is not assignable!
+```
+
+---
+
+## The `typeof` Type Operator (Value-to-Type)
+
+In JavaScript, `typeof` evaluates a value at runtime and returns a string (`"string"`, `"number"`, etc.).
+
+In TypeScript, **`typeof` in a type position** extracts the static type of an existing variable, constant, or object:
+
+```typescript
+const appConfig = {
+    appName: "CraveGo",
+    maxItems: 10,
+    isActive: true,
+};
+
+// Extracts the type shape directly from the variable:
+type AppConfig = typeof appConfig;
+/*
+Equivalent to:
+type AppConfig = {
+    appName: string;
+    maxItems: number;
+    isActive: boolean;
+};
+*/
+
+const clientConfig: AppConfig = {
+    appName: "MyApp",
+    maxItems: 20,
+    isActive: false,
+};
+```
+
+### Combining `typeof` with `keyof`
+
+You can combine `keyof typeof` to extract the keys of an existing JavaScript object without declaring a separate interface first:
+
+```typescript
+const colors = {
+    primary: "#007bff",
+    secondary: "#6c757d",
+    danger: "#dc3545",
+};
+
+// type ColorKeys = "primary" | "secondary" | "danger"
+type ColorKeys = keyof typeof colors;
+
+let myColor: ColorKeys = "primary"; // Valid
+// myColor = "accent"; // Error: Not a valid key!
+```
+
+### `typeof` with `as const` (Literal Types from Objects)
+
+Without `as const`, properties are inferred as generic types like `string` or `number`. Adding `as const` turns every property into an immutable literal type:
+
+```typescript
+const routes = {
+    home: "/",
+    dashboard: "/dashboard",
+    settings: "/settings",
+} as const;
+
+// type RouteKeys = "home" | "dashboard" | "settings"
+type RouteKeys = keyof typeof routes;
+
+// type RouteValues = "/" | "/dashboard" | "/settings"
+type RouteValues = typeof routes[RouteKeys];
+```
+
+---
+
+## Indexed Access Types (Lookup Types)
+
+Indexed access types let you look up the specific type of a property on another type using bracket notation (`Type["property"]`), just like accessing object values in JavaScript.
+
+```typescript
+type Member = {
+    name: string;
+    age: number;
+    isActive: boolean;
+};
+
+type MemberName = Member["name"];     // string
+type MemberAge = Member["age"];       // number
+type MemberStatus = Member["isActive"]; // boolean
+
+// Looking up multiple properties creates a union:
+type NameOrAge = Member["name" | "age"]; // string | number
+
+// Looking up all values dynamically:
+type MemberAllValues = Member[keyof Member]; // string | number | boolean
+```
+
+### Indexed Access with Arrays & Tuples
+
+```typescript
+type ColorsTuple = ["red", "green", "blue"];
+
+type FirstColor = ColorsTuple[0]; // "red"
+
+// Using [number] extracts the union of all elements in the array/tuple:
+type AnyColor = ColorsTuple[number]; // "red" | "green" | "blue"
+```
+
+---
+
+## Conditional Types
+
+A **conditional type** chooses between two possible types based on a condition, following the ternary operator syntax:
+
+```typescript
+type Result = SomeType extends TargetType ? TrueType : FalseType;
+```
+
+```typescript
+type CheckType<T> = T extends string ? "Text" : "Non-Text";
+
+type A = CheckType<string>;  // "Text"
+type B = CheckType<number>;  // "Non-Text"
+type C = CheckType<boolean>; // "Non-Text"
+```
+
+### Generic Constraint vs Conditional Type
+
+| Concept | Syntax | Purpose |
+| :--- | :--- | :--- |
+| **Generic Constraint** | `<T extends string>` | **Restricts** which types are accepted into a function or type |
+| **Conditional Type** | `T extends string ? A : B` | **Selects** a type depending on whether `T` satisfies the condition |
+
+### Distributive Conditional Types (With Unions)
+
+When a conditional type operates on a generic parameter `T` that receives a union, TypeScript automatically **distributes** the check across every member of the union:
+
+```typescript
+type ToArray<T> = T extends any ? T[] : never;
+
+// Distributes to: (string[]) | (number[])
+type StrOrNumArray = ToArray<string | number>;
+```
+
+---
+
+## The `infer` Keyword (Type Extraction)
+
+The `infer` keyword is used inside conditional types to **declare and extract a type on the fly** from within another type.
+
+Think of `infer` as saying: *"TypeScript, deduce this inner type and bind it to a variable name for me."*
+
+```typescript
+type Example<T> = T extends SomeStructure<infer U> ? U : Fallback;
+```
+
+### 1. Extracting Array Element Types
+
+```typescript
+type GetArrayElement<T> = T extends (infer ElementType)[] ? ElementType : T;
+
+type Item1 = GetArrayElement<string[]>;  // string
+type Item2 = GetArrayElement<number[]>;  // number
+type Item3 = GetArrayElement<boolean>;   // boolean (not an array, returns fallback T)
+```
+
+### 2. Extracting Function Return Types (How `ReturnType<T>` Works)
+
+```typescript
+type MyReturnType<T> = T extends (...args: any[]) => infer R ? R : never;
+
+function getUserAge() {
+    return 25;
+}
+
+function getUserName() {
+    return "Peter";
+}
+
+type AgeReturnType = MyReturnType<typeof getUserAge>;   // number
+type NameReturnType = MyReturnType<typeof getUserName>; // string
+```
+
+### 3. Extracting Property Types from Objects
+
+```typescript
+type GetNameField<T> = T extends { name: infer N } ? N : never;
+
+type Developer = { name: "Peter"; level: "Senior" };
+
+type ExtractedName = GetNameField<Developer>; // "Peter"
+```
+
+---
+
+## Mapped Types
+
+A **mapped type** iterates over the keys of an existing type using the `in` keyword and transforms each property into a new shape.
+
+```typescript
+type UserShape = {
+    name: string;
+    age: number;
+};
+
+// Syntax: [Key in keyof Type]: NewType
+type UserFlags = {
+    [Key in keyof UserShape]: boolean;
+};
+/*
+Result:
+type UserFlags = {
+    name: boolean;
+    age: boolean;
+};
+*/
+```
+
+### How the Syntax Works
+
+`[Key in keyof UserShape]: boolean`
+1. `keyof UserShape` gets the union of keys: `"name" | "age"`.
+2. `Key in ...` loops through each key one by one.
+3. `: boolean` specifies the new type for every property.
+
+### Replicating Existing Property Types with `T[Key]`
+
+```typescript
+type CopyType<T> = {
+    [Key in keyof T]: T[Key];
+};
+
+type CopiedUser = CopyType<UserShape>; // Exactly matches UserShape
+```
+
+### Adding & Removing Modifiers (`?` and `readonly`)
+
+You can add or strip away modifiers like `?` (optional) and `readonly` using `+` (default) or `-`:
+
+```typescript
+type BaseItem = {
+    readonly id: number;
+    title: string;
+    description?: string;
+};
+
+// 1. Make all properties optional (+?)
+type MakeOptional<T> = {
+    [K in keyof T]?: T[K];
+};
+
+// 2. Make all properties mandatory by removing optional (-?)
+type MakeRequired<T> = {
+    [K in keyof T]-?: T[K];
+};
+
+// 3. Make all properties editable by removing readonly (-readonly)
+type MakeMutable<T> = {
+    -readonly [K in keyof T]: T[K];
+};
+```
+
+---
+
+## TypeScript Declaration Files (`.d.ts`)
+
+A declaration file (`.d.ts`) describes the **types and shapes** of JavaScript libraries, modules, or global variables **without providing any executable runtime code**.
+
+- It tells TypeScript what functions, classes, and variables exist in external JavaScript files.
+- Uses the `declare` keyword to define ambient variables and functions.
+
+```typescript
+// math.d.ts
+export declare function add(a: number, b: number): number;
+export declare function subtract(a: number, b: number): number;
+
+// globals.d.ts
+declare const APP_VERSION: string;
+declare function trackAnalytics(event: string): void;
+```
+
+When you install npm packages that include types (or `@types/...`), you are consuming `.d.ts` declaration files.
+
+---
+
+## `tsconfig.json` & TypeScript Compilation
+
+The `tsconfig.json` file is the configuration file for a TypeScript project. It tells the compiler how to inspect your code, which files to include/exclude, and how to compile TypeScript into JavaScript.
+
+### Creating a `tsconfig.json`
+
+Run the following command in your terminal to generate a default configuration file:
+
+```bash
+tsc --init
+```
+
+### Essential `tsconfig.json` Options
+
+```json
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "CommonJS",
+        "rootDir": "./src",
+        "outDir": "./dist",
+        "strict": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist"]
+}
+```
+
+- **`"target"`**: Specifies which JavaScript ECMAScript version to output (e.g., `"ES6"`, `"ES2020"`, `"ESNext"`).
+- **`"module"`**: Sets the module system (e.g., `"CommonJS"` for Node.js, `"ESNext"` for modern bundlers).
+- **`"rootDir"`**: Specifies the root folder where your TypeScript source code lives.
+- **`"outDir"`**: Specifies the output directory where compiled `.js` files are placed.
+- **`"strict"`**: Enables a broad suite of strict type-checking flags (e.g., `noImplicitAny`, `strictNullChecks`).
+- **`"include"` / `"exclude"`**: Controls which folders and files TypeScript should compile or ignore.
+
+### Compiling Your Project
+
+```bash
+# Compiles the whole project using the local tsconfig.json:
+tsc
+
+# Checks for type errors without emitting any .js files (great for CI/CD pipelines):
+tsc --noEmit
+
+# Compiles using a specific configuration file:
+tsc --project tsconfig.json
+
+# Watches for file changes and recompiles automatically:
+tsc --watch
 ```
