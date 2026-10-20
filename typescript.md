@@ -761,11 +761,14 @@ Both `interface` and `type` can describe object structures and are often interch
 
 ## Enums (Enumeration)
 
-An **enum** allows you to define a group of named constants instead of repeating hardcoded values:
+An **enum** (enumeration) allows you to define a set of named constants instead of repeatedly writing hardcoded numbers or strings like `"pending"`, `"success"`, or `"failed"`.
+
+> [!IMPORTANT]
+> **Enum Member Value Rules:**
+> - By default, numeric enum members start at `0` and auto-increment by `1`.
+> - Enum values can **only** be numbers or strings. TypeScript **does not allow** arbitrary types like booleans, objects, arrays, `null`, or `undefined` as enum values.
 
 ### 1. Numeric Enums
-
-By default, numeric enum members start at `0` and auto-increment by `1`:
 
 ```typescript
 enum Status {
@@ -775,9 +778,11 @@ enum Status {
 }
 
 let currentStatus: Status = Status.Pending;
-currentStatus = Status.Success; // Valid (value: 1)
 
-// Custom start values:
+currentStatus = Status.Success; // Valid (value: 1)
+currentStatus = Status.Failed;  // Valid (value: 2)
+
+// Custom initial values (members following will auto-increment from 10):
 enum StatusCode {
     Pending = 10,
     Success = 20,
@@ -787,7 +792,7 @@ enum StatusCode {
 
 ### Numeric Enum Reverse Mapping
 
-Numeric enums automatically support **reverse mapping**, meaning you can look up the member name using its numeric value:
+Numeric enums automatically support **reverse mapping**, which means you can look up the member name using its numeric value:
 
 ```typescript
 enum Status {
@@ -801,11 +806,16 @@ console.log(Status[0]);      // Output: "Pending"
 ```
 
 > [!NOTE]
-> Under the hood, TypeScript compiles numeric enums into an object like `{ "0": "Pending", "Pending": 0 }`. That is why accessing `Status[0]` retrieves the member name.
+> **Why Reverse Mapping Works:**
+> Under the hood, TypeScript compiles numeric enums into an object containing both directions:
+> `{ "0": "Pending", "Pending": 0 }`.
+> Because of this structure, accessing `Status[0]` returns `"Pending"`.
+
+---
 
 ### 2. String Enums
 
-String enums require explicit string values for each member and do not provide reverse mapping:
+String enums require explicit string values for every member. Unlike numeric enums, string enums **do not support reverse mapping**:
 
 ```typescript
 enum PaymentStatus {
@@ -818,16 +828,44 @@ function processPayment(status: PaymentStatus) {
     console.log(status);
 }
 
-processPayment(PaymentStatus.Paid); // Output: "PAID"
-// processPayment("PAID"); // Error: Argument must be PaymentStatus.Paid
+processPayment(PaymentStatus.Paid); // Valid (prints "PAID")
+
+// TypeScript prevents invalid strings at compile time:
+// processPayment("UNKNOWN"); // Error: Argument of type '"UNKNOWN"' is not assignable to parameter of type 'PaymentStatus'
+// processPayment("PAID");    // Error: Even matching raw strings are rejected unless typed as the enum!
 ```
+
+---
+
+### 3. Heterogeneous Enums (Mixed Strings & Numbers)
+
+TypeScript permits mixing both string and numeric values inside the same enum:
+
+```typescript
+enum Status {
+    Pending = "Pending",
+    Success = 1,
+    Failed = "Failed",
+}
+
+let status: Status = Status.Pending;
+console.log(status); // "Pending"
+
+status = Status.Success;
+console.log(status); // 1
+```
+
+> [!WARNING]
+> While TypeScript allows heterogeneous enums, it is considered a best practice to **avoid mixing strings and numbers** unless you are modeling legacy JavaScript code or integrating with an existing external API with irregular response types.
+
+---
 
 ### Enums vs String Literal Unions
 
-While enums generate a JavaScript object at runtime, string literal unions disappear completely upon compilation:
+While enums generate an actual JavaScript object at runtime, string literal unions disappear completely upon compilation (zero runtime overhead):
 
 ```typescript
-// Modern TypeScript alternative: zero runtime overhead
+// Modern TypeScript alternative: zero runtime JS bundle size
 type UserRole = "ADMIN" | "EDITOR" | "VIEWER";
 
 let role: UserRole = "ADMIN"; // Clean, simple, and zero extra JS bundle size
@@ -940,10 +978,21 @@ function execute(callback: (value: number) => void): void {
 execute((value) => {
     console.log(value); // Output: 100
 });
+
+// Important nuance: functions returning values can still be passed to void callbacks!
+function greet(): string {
+    return "Hello";
+}
+
+function runAction(callback: () => void): void {
+    callback(); // Runs greet(), but its return value is ignored
+}
+
+runAction(greet); // Valid! TypeScript permits this because the caller simply ignores the return value.
 ```
 
 > [!NOTE]
-> In callback typing (`callback: () => void`), `void` means the calling function (`execute`) **will not use** the callback's return value. It does not forbid the callback from returning something; it simply means whatever is returned will be ignored.
+> In callback typing (`callback: () => void`), `void` means the calling function (`runAction`) **will not use** the callback's return value. It does not forbid the callback from returning something; it simply means whatever is returned will safely be discarded.
 
 ---
 
@@ -1762,11 +1811,20 @@ type StrOrNumArray = ToArray<string | number>;
 
 The `infer` keyword is used inside conditional types to **declare and extract a type on the fly** from within another type.
 
-Think of `infer` as saying: *"TypeScript, deduce this inner type and bind it to a variable name for me."*
+Think of `infer` as saying: *"TypeScript, figure out this part of the type for me."*
 
 ```typescript
-type Example<T> = T extends SomeStructure<infer U> ? U : Fallback;
+type Example<T> = T extends SomeStructure<infer U>
+    ? U
+    : Fallback;
 ```
+
+**How each part works:**
+- **`T`** — The type being checked.
+- **`extends`** — Checks whether `T` matches the target structure.
+- **`infer U`** — Tells TypeScript to identify the inner type and temporarily bind it to `U`.
+- **`? U`** — Returns the newly extracted type `U` if the condition matches.
+- **`: Fallback`** — Returns the fallback type if `T` does not match the structure.
 
 ### 1. Extracting Array Element Types
 
@@ -1950,3 +2008,379 @@ tsc --project tsconfig.json
 # Watches for file changes and recompiles automatically:
 tsc --watch
 ```
+
+---
+
+## Object-Oriented Programming (OOP) in TypeScript
+
+TypeScript provides first-class support for Object-Oriented Programming (OOP). It builds directly upon modern JavaScript class syntax while introducing compile-time access modifiers (`public`, `private`, `protected`), abstract classes, and strict type annotations.
+
+---
+
+### 1. Classes & Objects
+
+A **Class** is a blueprint or template for creating objects. It encapsulates data (properties/fields) and behaviors (methods/functions) that belong together. An **Object** is a concrete instance of that class created in memory using the `new` keyword.
+
+#### Defining a Class
+
+```typescript
+class Restaurant {
+    // 1. Property / Field declarations with types
+    name: string;
+    location: string;
+
+    // 2. Constructor: executes automatically when creating a new instance with `new`
+    constructor(name: string, location: string) {
+        this.name = name;         // 'this' refers to the current instance being constructed
+        this.location = location;
+    }
+
+    // 3. Methods: actions the object can perform
+    displayDetails(): void {
+        console.log(`${this.name} is located in ${this.location}`);
+    }
+}
+```
+
+**Understanding the components:**
+- `class Restaurant` — Defines a class named `Restaurant`.
+- `name: string;` — Declares a typed property to store the restaurant's name.
+- `location: string;` — Declares a typed property to store its location.
+- `constructor(...)` — Special initialization function that runs when `new` is invoked.
+- `this.name` — References the `name` property on the newly created instance.
+- `displayDetails(): void` — A method that performs an action; `void` indicates it returns no value.
+
+#### Instantiating Objects with `new`
+
+When you call `new Restaurant(...)`:
+1. Memory is allocated for a new object instance.
+2. The `constructor` function executes with the supplied arguments.
+3. The instance is returned with all properties and methods bound.
+
+```typescript
+const restaurant1 = new Restaurant("Pizza Hub", "Downtown");
+const restaurant2 = new Restaurant("Burger House", "Uptown");
+
+restaurant1.displayDetails(); // "Pizza Hub is located in Downtown"
+restaurant2.displayDetails(); // "Burger House is located in Uptown"
+```
+
+> [!TIP]
+> **Parameter Properties Shorthand:**
+> Instead of declaring properties and manually assigning them inside the constructor, TypeScript provides a concise shorthand using access modifiers in the constructor signature:
+> ```typescript
+> class Restaurant {
+>     constructor(public name: string, public location: string) {
+>         // TypeScript automatically creates and assigns this.name and this.location!
+>     }
+> }
+> ```
+
+---
+
+### 2. Encapsulation & Access Modifiers
+
+**Encapsulation** means keeping data and the methods that operate on that data bundled together inside a class, while controlling how that data is accessed or modified from the outside world.
+
+#### The Problem: Unconstrained Public Access
+
+Without access control, external code can directly mutate internal properties into invalid states:
+
+```typescript
+class BankAccount {
+    balance: number = 1000;
+}
+
+const account = new BankAccount();
+account.balance = -5000; // Allowed without errors! Corrupts business logic.
+console.log(account.balance); // -5000
+```
+
+#### Access Modifiers in TypeScript
+
+TypeScript provides three compile-time access modifiers to protect and control member visibility:
+
+| Modifier | Accessible from Inside Class? | Accessible from Subclasses (Children)? | Accessible from Outside Instances? |
+| :--- | :---: | :---: | :---: |
+| **`public`** (default) | Yes | Yes | Yes |
+| **`protected`** | Yes | Yes | No |
+| **`private`** | Yes | No | No |
+
+- **`public`**: The default behavior when no modifier is specified. Accessible from anywhere.
+- **`private`**: Accessible *only* inside the class where it is declared. Outside access triggers a TypeScript compile error.
+- **`protected`**: Accessible inside the declaring class and any child class that extends it, but hidden from external consumers.
+
+#### Complete Encapsulation Example with Validation
+
+```typescript
+class BankAccount {
+    // Private state: cannot be read or written directly from outside
+    private balance: number = 1000;
+
+    // Controlled getter method
+    public getBalance(): number {
+        return this.balance;
+    }
+
+    // Controlled mutation with business rules
+    public deposit(amount: number): void {
+        if (amount > 0) {
+            this.balance += amount;
+        } else {
+            console.log("Deposit amount must be greater than 0");
+        }
+    }
+
+    public withdrawal(amount: number): void {
+        if (amount > 0 && amount <= this.balance) {
+            this.balance -= amount;
+        } else {
+            console.log("Invalid withdrawal amount or insufficient funds");
+        }
+    }
+}
+
+const account = new BankAccount();
+
+account.deposit(500);
+console.log(account.getBalance()); // 1500
+
+account.withdrawal(750);
+console.log(account.getBalance()); // 750
+
+// Attempting direct modification triggers a TypeScript compilation error:
+// Error: Property 'balance' is private and only accessible within class 'BankAccount'.
+// account.balance = 5000;
+```
+
+> [!NOTE]
+> **TypeScript `private` vs JavaScript `#private` Fields:**
+> - `private balance: number` is enforced at **compile-time** by TypeScript (erased in the compiled JavaScript output).
+> - `#balance: number` is a **native JavaScript private field** (ECMAScript private syntax) enforced at runtime by the JS engine itself.
+
+---
+
+### 3. Inheritance (`extends` & `super`)
+
+**Inheritance** allows a child class to inherit properties and methods from a parent class. It maximizes code reuse and prevents repeating identical logic across multiple classes.
+
+- **Parent class (Superclass):** The base class whose properties and methods are inherited.
+- **Child class (Subclass):** The class that inherits from the parent class using the `extends` keyword.
+
+#### Basic Inheritance
+
+```typescript
+class User {
+    name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
+
+    displayName(): void {
+        console.log(`User name: ${this.name}`);
+    }
+}
+
+// Customer inherits all public and protected properties/methods from User
+class Customer extends User {}
+
+const customer1 = new Customer("Peter");
+customer1.displayName(); // "User name: Peter"
+```
+
+#### Constructor Chaining with `super()`
+
+When a child class defines its own `constructor`, it **must call `super(...)`** before accessing `this`. `super()` invokes the parent class constructor to guarantee that base properties are properly initialized.
+
+```typescript
+class User {
+    name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
+}
+
+class Customer extends User {
+    age: number;
+
+    constructor(name: string, age: number) {
+        super(name);    // Step 1: Initialize parent class constructor
+        this.age = age; // Step 2: Initialize child class specific properties
+    }
+}
+
+const customer1 = new Customer("Peter", 25);
+console.log(customer1.name); // "Peter" (from parent)
+console.log(customer1.age);  // 25 (from child)
+```
+
+#### Child Classes with Specialized Methods
+
+Subclasses can introduce their own unique methods in addition to everything inherited from the parent:
+
+```typescript
+class User {
+    name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
+
+    displayName(): void {
+        console.log(this.name);
+    }
+}
+
+class DeliveryPartner extends User {
+    // Exclusive method for delivery partners
+    deliverOrder(): void {
+        console.log(`${this.name} is delivering an order`);
+    }
+}
+
+const partner = new DeliveryPartner("Arun");
+partner.displayName();  // "Arun" (inherited from User)
+partner.deliverOrder(); // "Arun is delivering an order" (specific to DeliveryPartner)
+```
+
+---
+
+### 4. Polymorphism
+
+**Polymorphism** means *"many forms"*. In TypeScript OOP, it allows the same method call to produce different behaviors depending on the actual object instance invoking it.
+
+#### 1. Polymorphism via Method Overriding
+
+A child class can override a parent method to provide its own customized behavior:
+
+```typescript
+class User {
+    displayRole(): void {
+        console.log("I am a user");
+    }
+}
+
+class Customer extends User {
+    displayRole(): void {
+        console.log("I am a customer");
+    }
+}
+
+class Admin extends User {
+    displayRole(): void {
+        console.log("I am an admin");
+    }
+}
+
+const user = new User();
+const customer = new Customer();
+const admin = new Admin();
+
+user.displayRole();     // "I am a user"
+customer.displayRole(); // "I am a customer"
+admin.displayRole();    // "I am an admin"
+```
+
+#### 2. Parent-Class Reference (Dynamic Dispatch)
+
+You can assign child-class instances to a variable typed as the parent class. TypeScript verifies the common interface, while runtime executes the specialized child implementation:
+
+```typescript
+class Animal {
+    makeSound(): void {
+        console.log("Animal makes a sound");
+    }
+}
+
+class Dog extends Animal {
+    makeSound(): void {
+        console.log("Dog barks");
+    }
+}
+
+class Cat extends Animal {
+    makeSound(): void {
+        console.log("Cat meows");
+    }
+}
+
+// Variables typed as parent Animal, holding child instances:
+const animal1: Animal = new Dog();
+const animal2: Animal = new Cat();
+
+animal1.makeSound(); // "Dog barks"
+animal2.makeSound(); // "Cat meows"
+
+// Polymorphic array processing:
+const animals: Animal[] = [new Dog(), new Cat(), new Dog()];
+animals.forEach(a => a.makeSound());
+// "Dog barks"
+// "Cat meows"
+// "Dog barks"
+```
+
+#### Inheritance vs Polymorphism Summary
+
+| Feature | Inheritance | Polymorphism |
+| :--- | :--- | :--- |
+| **Primary Goal** | Code reuse and hierarchical relationship. | Allows the same method call to produce different behaviors. |
+| **Mechanism** | `extends` keyword between classes. | Demonstrated through method overriding & common base types. |
+| **Focus** | Class structure and property/method sharing. | Dynamic runtime behavior through a shared interface or base type. |
+
+---
+
+### 5. Abstraction (`abstract class` & `abstract methods`)
+
+**Abstraction** is the concept of hiding complex internal implementation details and exposing only what an object does, rather than how it does it.
+
+An **`abstract class`** acts as a base contract:
+- It **cannot be instantiated directly** using `new`.
+- It can declare **`abstract methods`** (signatures without an implementation body) that every concrete child class **must** implement.
+- It can also provide **concrete methods** (methods with full implementation) that all child classes share.
+
+#### Abstract Classes & Abstract Methods in Practice
+
+```typescript
+abstract class Vehicle {
+    // Abstract method: specifies WHAT child classes must do, but not HOW
+    abstract start(): void;
+
+    // Concrete method: shared implementation available to all subclasses
+    stop(): void {
+        console.log("Vehicle stopped");
+    }
+}
+
+class Car extends Vehicle {
+    // Must implement start() or TypeScript will throw a compile error
+    start(): void {
+        console.log("Car started");
+    }
+}
+
+const car = new Car();
+car.start(); // "Car started"
+car.stop();  // "Vehicle stopped"
+```
+
+#### Cannot Instantiate an Abstract Class Directly
+
+Attempting to instantiate an abstract class triggers a compile-time error:
+
+```typescript
+abstract class Animal {
+    abstract makeSound(): void;
+}
+
+// Error: Cannot create an instance of an abstract class.
+const animal = new Animal();
+```
+
+#### Abstraction vs Encapsulation
+
+While closely related in object-oriented design, their core purposes differ:
+
+- **Abstraction**: Hides implementation details and focuses on *what* an object can do (using `abstract class`, `abstract methods`, or `interface`).
+- **Encapsulation**: Controls and restricts direct access to internal data (using access modifiers such as `private`, `protected`, and `public`).
